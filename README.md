@@ -12,6 +12,11 @@ A Model Context Protocol (MCP) server for Confluence, enabling AI assistants to 
 - Clean and transform Confluence content for AI consumption
 - Handle API communication, error handling, and data transformation
 
+## Prerequisites
+
+- [Bun](https://bun.sh) (v1.0.0 or higher)
+- JIRA account with API access
+
 ## Installation
 
 ```bash
