@@ -82,12 +82,6 @@ Retrieve a Confluence page by ID. Format refers to the return format of the cont
   "pageId": "123456",
   "format": "text"
 }
-
-```json
-{
-  "pageId": "123456",
-  "format": "text"
-}
 ```
 
 ### search_pages
