@@ -14,6 +14,61 @@ This MCP server provides a bridge between AI systems and Confluence's REST API, 
 - Clean and transform Confluence content for AI consumption
 - Handle API communication, error handling, and data transformation
 
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/confluence-mcp.git
+cd confluence-mcp
+
+# Install dependencies
+bun install
+
+# Build the project
+bun run build
+```
+
+## Configuration
+
+To use this MCP server, you need to set the following environment variables:
+
+```
+CONFLUENCE_API_TOKEN=your_api_token
+CONFLUENCE_BASE_URL=your_confluence_instance_url  # e.g., https://your-domain.atlassian.net/wiki
+CONFLUENCE_USER_EMAIL=your_email
+```
+
+### Claude Desktop / Cline Configuration
+
+Add this configuration to your settings file:
+
+```json
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "bun",
+      "args": ["/absolute/path/to/confluence-mcp/dist/index.js"],
+      "env": {
+        "CONFLUENCE_API_TOKEN": "your_api_token",
+        "CONFLUENCE_BASE_URL": "your_confluence_instance_url/wiki",
+        "CONFLUENCE_USER_EMAIL": "your_email"
+      }
+    }
+  }
+}
+```
+
+## Development
+
+```bash
+# Run in development mode
+bun run dev
+
+# Run tests
+bun test
+```
+
+
 ## Available Tools
 
 The Confluence MCP server exposes the following tools:
@@ -75,60 +130,6 @@ Update an existing Confluence page.
   "content": "<p>Updated content in Confluence Storage Format (XHTML)</p>",
   "version": 1
 }
-```
-
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/confluence-mcp.git
-cd confluence-mcp
-
-# Install dependencies
-bun install
-
-# Build the project
-bun run build
-```
-
-## Configuration
-
-To use this MCP server, you need to set the following environment variables:
-
-```
-CONFLUENCE_API_TOKEN=your_api_token
-CONFLUENCE_BASE_URL=your_confluence_instance_url  # e.g., https://your-domain.atlassian.net/wiki
-CONFLUENCE_USER_EMAIL=your_email
-```
-
-### Claude Desktop / Cline Configuration
-
-Add this configuration to your settings file:
-
-```json
-{
-  "mcpServers": {
-    "confluence": {
-      "command": "node",
-      "args": ["/absolute/path/to/confluence-mcp/dist/index.js"],
-      "env": {
-        "CONFLUENCE_API_TOKEN": "your_api_token",
-        "CONFLUENCE_BASE_URL": "your_confluence_instance_url",
-        "CONFLUENCE_USER_EMAIL": "your_email"
-      }
-    }
-  }
-}
-```
-
-## Development
-
-```bash
-# Run in development mode
-bun run dev
-
-# Run tests
-bun test
 ```
 
 ## LICENCE
