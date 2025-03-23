@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server for Confluence, enabling AI assistants to interact with Confluence content through a standardized interface.
 
+ℹ️ There is a separate MCP server [for Jira](https://github.com/cosmix/jira-mcp)
+
 ## Overview
 
 This MCP server provides a bridge between AI systems and Confluence's REST API, allowing AI assistants like Claude to read, create, update, and manage Confluence content directly.
