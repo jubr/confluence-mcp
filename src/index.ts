@@ -414,7 +414,7 @@ class ConfluenceServer {
   }
 
   async run() {
-    const transport = new StdioServerTransport();
+    const transport = new StdioServerTransport(process.stdin, process.stdout);
     await this.server.connect(transport);
     console.error('Confluence MCP server running on stdio');
   }

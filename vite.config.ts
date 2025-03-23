@@ -10,7 +10,7 @@ export default defineConfig({
       fileName: 'index'
     },
     rollupOptions: {
-      external: ['@modelcontextprotocol/sdk']
+      external: ['@modelcontextprotocol/sdk', 'bun', 'process']
     },
     outDir: 'dist',
     sourcemap: true
