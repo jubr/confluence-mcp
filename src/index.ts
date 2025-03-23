@@ -83,7 +83,7 @@ class ConfluenceServer {
         },
         {
           name: 'search_pages',
-          description: 'Search for Confluence pages using CQL (Confluence Query Language)',
+          description: 'Search for Confluence pages using CQL (Confluence Query Language): query := expression [operator expression]* expression := field | function() | function | "phrase" | term operator := AND | OR | NOT | space field := date | after | before | during | lastmodified | modifiedafter | modifiedbefore | creator | from | to | content | title | body | subject | filename function() := now() | today() | yesterday() | this_week() | last_week() | this_month() | last_month() | this_year() | last_year() function := has | is | is | is | label | type | in value := string | quoted_string | date_format date_format := YYYY-MM-DD | YYYY-MM | YYYY quoted_string := "string with spaces" term := alphanumeric_string',
           inputSchema: {
             type: 'object',
             properties: {
