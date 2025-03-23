@@ -131,6 +131,6 @@ bun run dev
 bun test
 ```
 
-## License
+## LICENCE
 
-MIT
+This project is licensed under the MIT License - see the [LICENCE](LICENCE) file for details.
