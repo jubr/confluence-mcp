@@ -1,0 +1,424 @@
+#!/usr/bin/env bun
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListToolsRequestSchema,
+  McpError,
+} from '@modelcontextprotocol/sdk/types.js';
+import { ConfluenceApiService } from './services/confluence-api.js';
+import { optimizeForAI, storageFormatToMarkdown } from './utils/content-cleaner.js';
+
+declare module 'bun' {
+  interface Env {
+    CONFLUENCE_API_TOKEN: string;
+    CONFLUENCE_BASE_URL: string;
+    CONFLUENCE_USER_EMAIL: string;
+  }
+}
+
+const CONFLUENCE_API_TOKEN = process.env.CONFLUENCE_API_TOKEN;
+const CONFLUENCE_BASE_URL = process.env.CONFLUENCE_BASE_URL;
+const CONFLUENCE_USER_EMAIL = process.env.CONFLUENCE_USER_EMAIL;
+
+if (!CONFLUENCE_API_TOKEN || !CONFLUENCE_BASE_URL || !CONFLUENCE_USER_EMAIL) {
+  throw new Error('CONFLUENCE_API_TOKEN, CONFLUENCE_USER_EMAIL and CONFLUENCE_BASE_URL environment variables are required');
+}
+
+class ConfluenceServer {
+  private server: Server;
+  private confluenceApi: ConfluenceApiService;
+
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'confluence-mcp',
+        version: '0.1.0',
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      }
+    );
+
+    this.confluenceApi = new ConfluenceApiService(
+      CONFLUENCE_BASE_URL,
+      CONFLUENCE_USER_EMAIL,
+      CONFLUENCE_API_TOKEN
+    );
+
+    this.setupToolHandlers();
+    
+    // Error handling
+    this.server.onerror = (error) => console.error('[MCP Error]', error);
+    process.on('SIGINT', async () => {
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  private setupToolHandlers() {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: [
+        {
+          name: 'get_page',
+          description: 'Retrieve a Confluence page by ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID of the Confluence page to retrieve',
+              },
+              format: {
+                type: 'string',
+                enum: ['text', 'markdown'],
+                description: 'Format to return the content in (default: text)',
+              },
+            },
+            required: ['pageId'],
+          },
+        },
+        {
+          name: 'search_pages',
+          description: 'Search for Confluence pages using CQL (Confluence Query Language)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'CQL search query',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of results to return (default: 10)',
+              },
+              format: {
+                type: 'string',
+                enum: ['text', 'markdown'],
+                description: 'Format to return the content in (default: text)',
+              },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'get_spaces',
+          description: 'List all available Confluence spaces',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              limit: {
+                type: 'number',
+                description: 'Maximum number of spaces to return (default: 50)',
+              },
+            },
+          },
+        },
+        {
+          name: 'create_page',
+          description: 'Create a new Confluence page',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              spaceKey: {
+                type: 'string',
+                description: 'Key of the space where the page will be created',
+              },
+              title: {
+                type: 'string',
+                description: 'Title of the new page',
+              },
+              content: {
+                type: 'string',
+                description: 'Content of the page in Confluence Storage Format (XHTML)',
+              },
+              parentId: {
+                type: 'string',
+                description: 'Optional ID of the parent page',
+              },
+            },
+            required: ['spaceKey', 'title', 'content'],
+          },
+        },
+        {
+          name: 'update_page',
+          description: 'Update an existing Confluence page',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID of the page to update',
+              },
+              title: {
+                type: 'string',
+                description: 'New title of the page',
+              },
+              content: {
+                type: 'string',
+                description: 'New content in Confluence Storage Format (XHTML)',
+              },
+              version: {
+                type: 'number',
+                description: 'Current version number of the page',
+              },
+            },
+            required: ['pageId', 'title', 'content', 'version'],
+          },
+        },
+      ],
+    }));
+
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      try {
+        switch (request.params.name) {
+          case 'get_page': {
+            const { pageId, format = 'text' } = request.params.arguments as { 
+              pageId: string; 
+              format?: 'text' | 'markdown';
+            };
+
+            try {
+              const page = await this.confluenceApi.getPage(pageId);
+              
+              // Format the content based on the requested format
+              let formattedContent = page.content;
+              if (format === 'markdown' && page.content) {
+                formattedContent = storageFormatToMarkdown(page.content);
+              }
+              
+              // Optimize content for AI context window
+              const optimizedContent = optimizeForAI(formattedContent);
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      id: page.id,
+                      title: page.title,
+                      spaceKey: page.spaceKey,
+                      content: optimizedContent,
+                      url: page.links.webui,
+                      version: page.version,
+                      created: page.created,
+                      updated: page.updated,
+                      createdBy: page.createdBy.displayName,
+                      updatedBy: page.updatedBy.displayName,
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error retrieving page: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+          
+          case 'search_pages': {
+            const { query, limit = 10, format = 'text' } = request.params.arguments as {
+              query: string;
+              limit?: number;
+              format?: 'text' | 'markdown';
+            };
+
+            try {
+              const result = await this.confluenceApi.searchPages(query);
+              
+              // Limit the number of results and format content
+              const limitedPages = result.pages.slice(0, limit).map(page => {
+                // Format content if needed
+                let formattedContent = page.content;
+                if (format === 'markdown' && page.content) {
+                  formattedContent = storageFormatToMarkdown(page.content);
+                }
+                
+                // Optimize for AI
+                const optimizedContent = optimizeForAI(formattedContent);
+                
+                return {
+                  id: page.id,
+                  title: page.title,
+                  spaceKey: page.spaceKey,
+                  content: optimizedContent,
+                  url: page.links.webui,
+                  version: page.version,
+                  updated: page.updated,
+                  updatedBy: page.updatedBy.displayName,
+                };
+              });
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      total: result.total,
+                      returned: limitedPages.length,
+                      pages: limitedPages,
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error searching pages: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+          
+          case 'get_spaces': {
+            const { limit = 50 } = request.params.arguments as {
+              limit?: number;
+            };
+
+            try {
+              const result = await this.confluenceApi.getSpaces();
+              
+              // Limit the number of results
+              const limitedSpaces = result.spaces.slice(0, limit);
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      total: result.total,
+                      returned: limitedSpaces.length,
+                      spaces: limitedSpaces,
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error retrieving spaces: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+          
+          case 'create_page': {
+            const { spaceKey, title, content, parentId } = request.params.arguments as {
+              spaceKey: string;
+              title: string;
+              content: string;
+              parentId?: string;
+            };
+
+            try {
+              const page = await this.confluenceApi.createPage(spaceKey, title, content, parentId);
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      id: page.id,
+                      title: page.title,
+                      spaceKey: page.spaceKey,
+                      version: page.version,
+                      url: page.links.webui,
+                      parentId: page.parentId,
+                      message: 'Page created successfully',
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+          
+          case 'update_page': {
+            const { pageId, title, content, version } = request.params.arguments as {
+              pageId: string;
+              title: string;
+              content: string;
+              version: number;
+            };
+
+            try {
+              const page = await this.confluenceApi.updatePage(pageId, title, content, version);
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      id: page.id,
+                      title: page.title,
+                      spaceKey: page.spaceKey,
+                      version: page.version,
+                      url: page.links.webui,
+                      message: 'Page updated successfully',
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error updating page: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+          
+          default:
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
+        }
+      } catch (error) {
+        if (error instanceof McpError) {
+          throw error;
+        }
+        throw new McpError(
+          ErrorCode.InternalError,
+          error instanceof Error ? error.message : 'Unknown error occurred'
+        );
+      }
+    });
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('Confluence MCP server running on stdio');
+  }
+}
+
+const server = new ConfluenceServer();
+server.run().catch(console.error);

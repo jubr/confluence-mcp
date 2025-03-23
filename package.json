@@ -1,0 +1,34 @@
+{
+  "name": "confluence-mcp",
+  "version": "1.0.0",
+  "description": "Confluence MCP Server",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "vite build && chmod +x dist/index.js",
+    "start": "bun dist/index.js",
+    "dev": "vite",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "keywords": [
+    "mcp",
+    "confluence",
+    "typescript",
+    "bun"
+  ],
+  "author": "Dimosthenis Kaponis",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.13.11",
+    "vite": "^6.2.2",
+    "vite-plugin-dts": "^4.5.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.7.0"
+  }
+}
