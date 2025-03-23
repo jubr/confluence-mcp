@@ -15,7 +15,7 @@ A Model Context Protocol (MCP) server for Confluence, enabling AI assistants to 
 ## Prerequisites
 
 - [Bun](https://bun.sh) (v1.0.0 or higher)
-- JIRA account with API access
+- Confluence account with API access
 
 ## Installation
 
