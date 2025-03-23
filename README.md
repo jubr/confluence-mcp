@@ -75,24 +75,30 @@ The Confluence MCP server exposes the following tools:
 
 ### get_page
 
-Retrieve a Confluence page by ID.
+Retrieve a Confluence page by ID. Format refers to the return format of the content and can be `text` or `markdown`.
 
 ```json
 {
   "pageId": "123456",
-  "format": "text" // or "markdown"
+  "format": "text"
+}
+
+```json
+{
+  "pageId": "123456",
+  "format": "text"
 }
 ```
 
 ### search_pages
 
-Search for Confluence pages using CQL (Confluence Query Language).
+Search for Confluence pages using CQL (Confluence Query Language). Format refers to the return format of the content and can be `text` or `markdown`.
 
 ```json
 {
   "query": "space = DEV and label = documentation",
   "limit": 10,
-  "format": "text" // or "markdown"
+  "format": "text"
 }
 ```
 
@@ -108,14 +114,14 @@ List all available Confluence spaces.
 
 ### create_page
 
-Create a new Confluence page.
+Create a new Confluence page. The `parentId` is optional and can be used to create a child page under an existing page.
 
 ```json
 {
   "spaceKey": "DEV",
   "title": "New Page Title",
   "content": "<p>Page content in Confluence Storage Format (XHTML)</p>",
-  "parentId": "123456" // Optional
+  "parentId": "123456" 
 }
 ```
 
