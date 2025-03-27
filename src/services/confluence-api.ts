@@ -26,13 +26,17 @@ export class ConfluenceApiService {
   private async handleFetchError(response: Response, url?: string): Promise<never> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      const urlPath = url ? new URL(url, this.baseUrl).pathname : '';
 
-      // Handle 404 for content endpoints
-      if (response.status === 404 && url?.includes('/content/')) {
-        const match = url.match(/\/content\/([^/]+)/);
-        if (match) {
-          throw new Error(`Content not found: ${match[1]}`);
+      // Handle 404 specifically for /content/{id} or /content/{id}/child/... endpoints
+      const contentPathMatch = urlPath.match(/^\/rest\/api\/content\/([^/]+)/);
+      if (response.status === 404 && contentPathMatch) {
+        const contentId = contentPathMatch[1]; // This should be the page or comment ID
+        // Check if it looks like an ID (numeric) or potentially a resource name like 'search'
+        if (/^\d+$/.test(contentId)) { // Only throw specific error for numeric IDs
+             throw new Error(`Content not found: ${contentId}`);
         }
+        // Let other 404s fall through to the generic error
       }
 
       // Extract error message from response with more details
