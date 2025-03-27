@@ -1,11 +1,20 @@
-import { CleanConfluencePage, ConfluenceSpace } from '../types/confluence.js';
+import { 
+  CleanConfluencePage, 
+  ConfluenceSpace, 
+  ConfluenceComment, 
+  GetCommentsResponse,
+  ConfluenceAttachment,
+  GetAttachmentsResponse
+} from '../types/confluence.js';
 
 export class ConfluenceApiService {
   private baseUrl: string;
   private headers: Headers;
+  private requestDelay: number; // Delay in milliseconds
 
-  constructor(baseUrl: string, email: string, apiToken: string) {
+  constructor(baseUrl: string, email: string, apiToken: string, requestDelayMs: number = 200) { // Default delay 200ms
     this.baseUrl = baseUrl;
+    this.requestDelay = requestDelayMs;
     const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
     this.headers = new Headers({
       'Authorization': `Basic ${auth}`,
@@ -80,7 +89,60 @@ export class ConfluenceApiService {
     };
   }
 
+  private cleanComment(comment: any, pageId: string): ConfluenceComment {
+    const body = comment.body?.storage?.value || '';
+    const cleanContent = this.extractTextContent(body);
+
+    return {
+      id: comment.id,
+      pageId: pageId, // The API doesn't always return this directly in the comment object
+      content: cleanContent,
+      created: comment.history?.createdDate || '',
+      createdBy: {
+        id: comment.history?.createdBy?.accountId || '',
+        displayName: comment.history?.createdBy?.displayName || '',
+        email: comment.history?.createdBy?.email
+      },
+      updated: comment.version?.when,
+      updatedBy: {
+        id: comment.version?.by?.accountId || '',
+        displayName: comment.version?.by?.displayName || '',
+        email: comment.version?.by?.email
+      },
+      parentId: comment.ancestors?.length > 0 ? comment.ancestors[comment.ancestors.length - 1].id : undefined,
+      links: {
+        webui: comment._links?.webui || ''
+      }
+    };
+  }
+
+  private cleanAttachment(attachment: any, pageId: string): ConfluenceAttachment {
+    return {
+      id: attachment.id,
+      pageId: pageId, // API doesn't return this directly
+      title: attachment.title,
+      mediaType: attachment.metadata?.mediaType || 'application/octet-stream',
+      fileSize: attachment.extensions?.fileSize || 0,
+      created: attachment.history?.createdDate || '',
+      createdBy: {
+        id: attachment.history?.createdBy?.accountId || '',
+        displayName: attachment.history?.createdBy?.displayName || '',
+        email: attachment.history?.createdBy?.email
+      },
+      version: attachment.version?.number || 1,
+      links: {
+        webui: attachment._links?.webui || '',
+        download: this.baseUrl + (attachment._links?.download || '')
+      }
+    };
+  }
+
   private async fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+    // Add delay before making the request
+    if (this.requestDelay > 0) {
+      await Bun.sleep(this.requestDelay);
+    }
+    
     const response = await fetch(this.baseUrl + url, {
       ...init,
       headers: this.headers
@@ -226,5 +288,132 @@ export class ConfluenceApiService {
 
     // Fetch the updated page to get all the fields we need for cleaning
     return this.getPage(pageId);
+  }
+
+  /**
+   * Retrieves comments for a specific Confluence page
+   * 
+   * @param pageId - The ID of the page to retrieve comments for
+   * @returns Object containing total count and array of cleaned comments
+   */
+  async getComments(pageId: string): Promise<GetCommentsResponse> {
+    const params = new URLSearchParams({
+      expand: 'body.storage,version,history,ancestors',
+      limit: '100' // Adjust limit as needed, or implement pagination
+    });
+
+    const data = await this.fetchJson<any>(`/rest/api/content/${pageId}/child/comment?${params}`);
+    
+    return {
+      total: data.size || 0,
+      comments: (data.results || []).map((comment: any) => this.cleanComment(comment, pageId))
+    };
+  }
+
+  /**
+   * Adds a comment to a Confluence page
+   * 
+   * @param pageId - The ID of the page to add the comment to
+   * @param content - The comment content in Confluence Storage Format (XHTML)
+   * @param parentId - Optional ID of the parent comment for threading
+   * @returns A cleaned version of the created comment
+   */
+  async addComment(pageId: string, content: string, parentId?: string): Promise<ConfluenceComment> {
+    const payload: any = {
+      type: 'comment',
+      container: { id: pageId, type: 'page' },
+      body: {
+        storage: {
+          value: content,
+          representation: 'storage'
+        }
+      }
+    };
+
+    // Add parent relationship if parentId is provided (for threaded replies)
+    if (parentId) {
+      payload.ancestors = [{ id: parentId }];
+    }
+
+    const comment = await this.fetchJson<any>('/rest/api/content', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    // Fetch the full comment details to get all fields for cleaning
+    // Need to use the comment ID now
+    const fullComment = await this.fetchJson<any>(`/rest/api/content/${comment.id}?expand=body.storage,version,history,ancestors`);
+    return this.cleanComment(fullComment, pageId);
+  }
+
+  /**
+   * Retrieves attachments for a specific Confluence page
+   * 
+   * @param pageId - The ID of the page to retrieve attachments for
+   * @returns Object containing total count and array of cleaned attachments
+   */
+  async getAttachments(pageId: string): Promise<GetAttachmentsResponse> {
+    const params = new URLSearchParams({
+      expand: 'version,history',
+      limit: '100' // Adjust limit or implement pagination
+    });
+
+    const data = await this.fetchJson<any>(`/rest/api/content/${pageId}/child/attachment?${params}`);
+    
+    return {
+      total: data.size || 0,
+      attachments: (data.results || []).map((attachment: any) => this.cleanAttachment(attachment, pageId))
+    };
+  }
+
+  /**
+   * Adds an attachment to a Confluence page
+   * 
+   * @param pageId - The ID of the page to attach the file to
+   * @param fileContent - The content of the file as a Buffer
+   * @param filename - The desired filename for the attachment
+   * @param comment - Optional comment for the attachment version
+   * @returns A cleaned version of the created attachment
+   */
+  async addAttachment(pageId: string, fileContent: Buffer, filename: string, comment?: string): Promise<ConfluenceAttachment> {
+    const formData = new FormData();
+    const blob = new Blob([fileContent]); 
+    formData.append('file', blob, filename);
+    if (comment) {
+      formData.append('comment', comment);
+    }
+    // 'minorEdit' can be set to 'true' if needed, defaults to false
+
+    // Need specific headers for file upload
+    const uploadHeaders = new Headers(this.headers);
+    uploadHeaders.delete('Content-Type'); // Let fetch set the multipart boundary
+    uploadHeaders.set('X-Atlassian-Token', 'no-check'); // Required for attachments API
+
+    // Add delay before making the request
+    if (this.requestDelay > 0) {
+      await Bun.sleep(this.requestDelay);
+    }
+
+    const response = await fetch(`${this.baseUrl}/rest/api/content/${pageId}/child/attachment`, {
+      method: 'POST',
+      headers: uploadHeaders,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      await this.handleFetchError(response, `${this.baseUrl}/rest/api/content/${pageId}/child/attachment`);
+    }
+
+    const data = await response.json();
+    
+    // The response contains an array of attachments, usually just one
+    const createdAttachment = data?.results?.[0];
+    if (!createdAttachment) {
+      throw new Error('Failed to retrieve attachment details after upload');
+    }
+
+    // Fetch full details to clean properly
+    const fullAttachment = await this.fetchJson<any>(`/rest/api/content/${createdAttachment.id}?expand=version,history`);
+    return this.cleanAttachment(fullAttachment, pageId);
   }
 }

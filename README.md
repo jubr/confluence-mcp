@@ -9,8 +9,11 @@ A Model Context Protocol (MCP) server for Confluence, enabling AI assistants to 
 - Authenticate to Confluence using a personal API token
 - Retrieve and search Confluence pages and spaces
 - Create and update Confluence content
+- Retrieve and add comments to pages
+- Retrieve and add attachments to pages
 - Clean and transform Confluence content for AI consumption
 - Handle API communication, error handling, and data transformation
+- Basic rate limiting to prevent API abuse
 
 ## Prerequisites
 
@@ -132,6 +135,54 @@ Update an existing Confluence page.
   "title": "Updated Page Title",
   "content": "<p>Updated content in Confluence Storage Format (XHTML)</p>",
   "version": 1
+}
+```
+
+### get_comments
+
+Retrieve comments for a specific Confluence page. Format refers to the return format of the content and can be `text` or `markdown`.
+
+```json
+{
+  "pageId": "123456",
+  "limit": 25,
+  "format": "text"
+}
+```
+
+### add_comment
+
+Add a comment to a Confluence page. The `parentId` is optional for creating threaded replies.
+
+```json
+{
+  "pageId": "123456",
+  "content": "<p>This is a new comment.</p>",
+  "parentId": "789012" 
+}
+```
+
+### get_attachments
+
+Retrieve attachments for a specific Confluence page.
+
+```json
+{
+  "pageId": "123456",
+  "limit": 25
+}
+```
+
+### add_attachment
+
+Add an attachment to a Confluence page. The `fileContentBase64` should be the base64 encoded string of the file content.
+
+```json
+{
+  "pageId": "123456",
+  "filename": "document.pdf",
+  "fileContentBase64": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+P...",
+  "comment": "Uploaded new version of the document"
 }
 ```
 

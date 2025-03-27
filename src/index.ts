@@ -169,6 +169,95 @@ class ConfluenceServer {
             required: ['pageId', 'title', 'content', 'version'],
           },
         },
+        {
+          name: 'get_comments',
+          description: 'Retrieve comments for a specific Confluence page',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID of the page to retrieve comments for',
+              },
+              format: {
+                type: 'string',
+                enum: ['text', 'markdown'],
+                description: 'Format to return comment content in (default: text)',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of comments to return (default: 25)',
+              },
+            },
+            required: ['pageId'],
+          },
+        },
+        {
+          name: 'add_comment',
+          description: 'Add a comment to a Confluence page',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID of the page to add the comment to',
+              },
+              content: {
+                type: 'string',
+                description: 'Comment content in Confluence Storage Format (XHTML)',
+              },
+              parentId: {
+                type: 'string',
+                description: 'Optional ID of the parent comment for threading',
+              },
+            },
+            required: ['pageId', 'content'],
+          },
+        },
+        {
+          name: 'get_attachments',
+          description: 'Retrieve attachments for a specific Confluence page',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID of the page to retrieve attachments for',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of attachments to return (default: 25)',
+              },
+            },
+            required: ['pageId'],
+          },
+        },
+        {
+          name: 'add_attachment',
+          description: 'Add an attachment to a Confluence page',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID of the page to attach the file to',
+              },
+              filename: {
+                type: 'string',
+                description: 'Desired filename for the attachment',
+              },
+              fileContentBase64: {
+                type: 'string',
+                description: 'Base64 encoded content of the file',
+              },
+              comment: {
+                type: 'string',
+                description: 'Optional comment for the attachment version',
+              },
+            },
+            required: ['pageId', 'filename', 'fileContentBase64'],
+          },
+        },
       ],
     }));
 
@@ -341,6 +430,8 @@ class ConfluenceServer {
                       version: page.version,
                       url: page.links.webui,
                       parentId: page.parentId,
+                      updated: page.updated,
+                      updatedBy: page.updatedBy.displayName,
                       message: 'Page created successfully',
                     }, null, 2),
                   },
@@ -380,6 +471,8 @@ class ConfluenceServer {
                       spaceKey: page.spaceKey,
                       version: page.version,
                       url: page.links.webui,
+                      updated: page.updated,
+                      updatedBy: page.updatedBy.displayName,
                       message: 'Page updated successfully',
                     }, null, 2),
                   },
@@ -391,6 +484,168 @@ class ConfluenceServer {
                   {
                     type: 'text',
                     text: `Error updating page: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'get_comments': {
+            const { pageId, format = 'text', limit = 25 } = request.params.arguments as {
+              pageId: string;
+              format?: 'text' | 'markdown';
+              limit?: number;
+            };
+
+            try {
+              const result = await this.confluenceApi.getComments(pageId);
+              
+              // Limit and format comments
+              const limitedComments = result.comments.slice(0, limit).map(comment => {
+                let formattedContent = comment.content;
+                if (format === 'markdown' && comment.content) {
+                  formattedContent = storageFormatToMarkdown(comment.content);
+                }
+                const optimizedContent = optimizeForAI(formattedContent);
+                
+                return {
+                  ...comment,
+                  content: optimizedContent,
+                };
+              });
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      total: result.total,
+                      returned: limitedComments.length,
+                      comments: limitedComments,
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error retrieving comments: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'add_comment': {
+            const { pageId, content, parentId } = request.params.arguments as {
+              pageId: string;
+              content: string;
+              parentId?: string;
+            };
+
+            try {
+              const comment = await this.confluenceApi.addComment(pageId, content, parentId);
+              
+              // Optimize content for response
+              const optimizedContent = optimizeForAI(comment.content);
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      ...comment,
+                      content: optimizedContent,
+                      message: 'Comment added successfully',
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error adding comment: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'get_attachments': {
+            const { pageId, limit = 25 } = request.params.arguments as {
+              pageId: string;
+              limit?: number;
+            };
+
+            try {
+              const result = await this.confluenceApi.getAttachments(pageId);
+              
+              // Limit attachments
+              const limitedAttachments = result.attachments.slice(0, limit);
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      total: result.total,
+                      returned: limitedAttachments.length,
+                      attachments: limitedAttachments,
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error retrieving attachments: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'add_attachment': {
+            const { pageId, filename, fileContentBase64, comment } = request.params.arguments as {
+              pageId: string;
+              filename: string;
+              fileContentBase64: string;
+              comment?: string;
+            };
+
+            try {
+              // Decode base64 content
+              const fileContent = Buffer.from(fileContentBase64, 'base64');
+
+              const attachment = await this.confluenceApi.addAttachment(pageId, fileContent, filename, comment);
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      ...attachment,
+                      message: 'Attachment added successfully',
+                    }, null, 2),
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Error adding attachment: ${error instanceof Error ? error.message : String(error)}`,
                   },
                 ],
                 isError: true,

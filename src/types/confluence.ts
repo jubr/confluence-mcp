@@ -47,3 +47,54 @@ export interface SearchSpacesResponse {
   total: number;
   spaces: ConfluenceSpace[];
 }
+
+export interface ConfluenceComment {
+  id: string;
+  pageId: string;
+  content: string; // Assuming Storage Format or similar
+  created: string;
+  createdBy: {
+    id: string;
+    displayName: string;
+    email?: string;
+  };
+  updated?: string;
+  updatedBy?: {
+    id: string;
+    displayName: string;
+    email?: string;
+  };
+  parentId?: string; // For replies
+  links: {
+    webui?: string;
+  };
+}
+
+export interface GetCommentsResponse {
+  total: number;
+  comments: ConfluenceComment[];
+}
+
+export interface ConfluenceAttachment {
+  id: string;
+  pageId: string;
+  title: string;
+  mediaType: string;
+  fileSize: number;
+  created: string;
+  createdBy: {
+    id: string;
+    displayName: string;
+    email?: string;
+  };
+  version: number;
+  links: {
+    webui?: string;
+    download?: string;
+  };
+}
+
+export interface GetAttachmentsResponse {
+  total: number;
+  attachments: ConfluenceAttachment[];
+}
