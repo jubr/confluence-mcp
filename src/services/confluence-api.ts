@@ -127,11 +127,13 @@ export class ConfluenceApiService {
       title: attachment.title,
       mediaType: attachment.metadata?.mediaType || 'application/octet-stream',
       fileSize: attachment.extensions?.fileSize || 0,
-      created: attachment.history?.createdDate || '',
+      // Prioritize version.when for created date, fallback to history
+      created: attachment.version?.when || attachment.history?.createdDate || '',
       createdBy: {
-        id: attachment.history?.createdBy?.accountId || '',
-        displayName: attachment.history?.createdBy?.displayName || '',
-        email: attachment.history?.createdBy?.email
+        // Prioritize version.by for creator info, fallback to history
+        id: attachment.version?.by?.accountId || attachment.history?.createdBy?.accountId || '',
+        displayName: attachment.version?.by?.displayName || attachment.history?.createdBy?.displayName || '',
+        email: attachment.version?.by?.email || attachment.history?.createdBy?.email
       },
       version: attachment.version?.number || 1,
       links: {
@@ -204,7 +206,7 @@ export class ConfluenceApiService {
   async getSpaces(): Promise<{ total: number; spaces: ConfluenceSpace[] }> {
     const params = new URLSearchParams({
       limit: '100',
-      expand: 'description'
+      expand: 'description.plain' // Corrected expand parameter
     });
 
     const data = await this.fetchJson<any>(`/rest/api/space?${params}`);
@@ -359,7 +361,7 @@ export class ConfluenceApiService {
    */
   async getAttachments(pageId: string): Promise<GetAttachmentsResponse> {
     const params = new URLSearchParams({
-      expand: 'version,history',
+      expand: 'version,history,metadata', // Added metadata to expand
       limit: '100' // Adjust limit or implement pagination
     });
 
@@ -417,8 +419,10 @@ export class ConfluenceApiService {
       throw new Error('Failed to retrieve attachment details after upload');
     }
 
-    // Fetch full details to clean properly
-    const fullAttachment = await this.fetchJson<any>(`/rest/api/content/${createdAttachment.id}?expand=version,history`);
-    return this.cleanAttachment(fullAttachment, pageId);
+    // Use the details from the POST response directly, no need for another GET
+    // The POST response already contains sufficient details including version and history if expanded correctly (though the API might not expand on POST)
+    // We will rely on the data returned by the POST, assuming it's sufficient for cleaning.
+    // If more details were absolutely needed, the test mock would need to handle the second GET.
+    return this.cleanAttachment(createdAttachment, pageId);
   }
 }

@@ -23,7 +23,8 @@
     "@types/bun": "latest",
     "@types/node": "^22.13.11",
     "vite": "^6.2.2",
-    "vite-plugin-dts": "^4.5.3"
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^3.0.9"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
