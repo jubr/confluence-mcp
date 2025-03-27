@@ -92,6 +92,7 @@ export interface ConfluenceAttachment {
     webui?: string;
     download?: string;
   };
+  comment?: string; // Optional comment associated with the attachment version
 }
 
 export interface GetAttachmentsResponse {

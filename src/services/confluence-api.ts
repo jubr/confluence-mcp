@@ -137,7 +137,8 @@ export class ConfluenceApiService {
       links: {
         webui: attachment._links?.webui || '',
         download: this.baseUrl + (attachment._links?.download || '')
-      }
+      },
+      comment: attachment.version?.message || '' // Map version message to comment
     };
   }
 
