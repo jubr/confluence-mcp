@@ -42,7 +42,7 @@ describe('ConfluenceApiService - Spaces', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
   });
@@ -63,7 +63,7 @@ describe('ConfluenceApiService - Spaces', () => {
             'Content-Type': 'application/json'
           })
         }));
-      });
+      }) as any;
 
       const result = await apiService.getSpaces();
 
@@ -100,7 +100,7 @@ describe('ConfluenceApiService - Spaces', () => {
               'Content-Type': 'application/json'
             })
           }));
-        });
+        }) as any;
 
         const result = await apiService.getSpaces();
 

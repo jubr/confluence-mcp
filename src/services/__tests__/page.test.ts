@@ -71,7 +71,7 @@ describe('ConfluenceApiService - Pages', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
   });
@@ -92,7 +92,7 @@ describe('ConfluenceApiService - Pages', () => {
             'Content-Type': 'application/json'
           })
         }));
-      });
+      }) as any;
 
       const pageId = 'page-123';
       const page = await apiService.getPage(pageId);
@@ -158,7 +158,7 @@ describe('ConfluenceApiService - Pages', () => {
         } else {
           return getMock();
         }
-      });
+      }) as any;
 
       const spaceKey = 'TEST';
       const title = 'New Test Page';
@@ -251,7 +251,7 @@ describe('ConfluenceApiService - Pages', () => {
             return getUpdatedMock(); // Second GET returns updated page
           }
         }
-      });
+      }) as any;
 
       const pageId = 'page-123';
       const title = 'Updated Test Page';

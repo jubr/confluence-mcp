@@ -17,7 +17,7 @@ describe('ConfluenceApiService - Error Handling', () => {
     global.fetch = mock(() => {
       // Default mock, can be overridden in specific tests
       return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
-    });
+    }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
   });
@@ -31,7 +31,7 @@ describe('ConfluenceApiService - Error Handling', () => {
     // Mock a network error
     global.fetch = mock(() => {
       return Promise.reject(new Error('Network error'));
-    });
+    }) as any;
 
     // Test with one method, assuming handleFetchError is used consistently
     await expect(apiService.getPage('page-123')).rejects.toThrow('Network error');
@@ -47,7 +47,7 @@ describe('ConfluenceApiService - Error Handling', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     const pageId = 'non-existent-page';
     // Test with getPage
@@ -71,7 +71,7 @@ describe('ConfluenceApiService - Error Handling', () => {
       }
       // Default mock for other calls if needed
       return Promise.resolve(new Response(JSON.stringify({})));
-    });
+    }) as any;
 
     await expect(apiService.searchPages('test')).rejects.toThrow('Confluence API Error: Search endpoint not found');
   });
@@ -86,7 +86,7 @@ describe('ConfluenceApiService - Error Handling', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     // Test with one method, assuming handleFetchError is used consistently
     await expect(apiService.getPage('page-123')).rejects.toThrow('Confluence API Error: Internal server error');
@@ -99,7 +99,7 @@ describe('ConfluenceApiService - Error Handling', () => {
          statusText: 'Gateway Timeout',
          headers: new Headers({ 'Content-Type': 'text/html' })
        }));
-     });
+     }) as any;
 
      await expect(apiService.getPage('page-123')).rejects.toThrow('Confluence API Error: Gateway Timeout (Status: 504)');
    });
@@ -115,7 +115,7 @@ describe('ConfluenceApiService - Error Handling', () => {
          }
          // Should not reach GET if POST fails
          return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected GET call' }), { status: 500 }));
-      });
+      }) as any;
 
       const invalidPageId = 'invalid-page';
       const content = '<p>Test</p>';
@@ -141,7 +141,7 @@ describe('ConfluenceApiService - Error Handling', () => {
            return getMock();
          }
          return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected fetch call' }), { status: 500 }));
-       });
+       }) as any;
 
 
       const pageId = 'page-123';

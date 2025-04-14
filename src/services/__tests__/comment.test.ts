@@ -55,7 +55,7 @@ describe('ConfluenceApiService - Comments', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
   });
@@ -72,7 +72,7 @@ describe('ConfluenceApiService - Comments', () => {
           status: 200,
           headers: new Headers({ 'Content-Type': 'application/json' })
         }));
-      });
+      }) as any;
 
       const pageId = 'page-123';
       const result = await apiService.getComments(pageId);
@@ -100,7 +100,7 @@ describe('ConfluenceApiService - Comments', () => {
           status: 200,
           headers: new Headers({ 'Content-Type': 'application/json' })
         }));
-      });
+      }) as any;
 
       const pageId = 'page-no-comments';
       const result = await apiService.getComments(pageId);
@@ -146,7 +146,7 @@ describe('ConfluenceApiService - Comments', () => {
        }
        // Fallback for unexpected calls
        return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected fetch call' }), { status: 500 }));
-     });
+     }) as any;
 
 
      const pageId = 'page-123';
@@ -206,7 +206,7 @@ describe('ConfluenceApiService - Comments', () => {
        }
        // Fallback for unexpected calls
        return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected fetch call' }), { status: 500 }));
-     });
+     }) as any;
 
      const pageId = 'page-123';
       const content = '<p>This is a reply</p>';

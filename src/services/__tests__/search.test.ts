@@ -76,7 +76,7 @@ describe('ConfluenceApiService - Search', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
   });
@@ -97,7 +97,7 @@ describe('ConfluenceApiService - Search', () => {
             'Content-Type': 'application/json'
           })
         }));
-      });
+      }) as any;
 
       const query = 'test';
       const result = await apiService.searchPages(query);
@@ -134,7 +134,7 @@ describe('ConfluenceApiService - Search', () => {
             'Content-Type': 'application/json'
           })
         }));
-      });
+      }) as any;
 
       const query = 'nonexistent';
       const result = await apiService.searchPages(query);

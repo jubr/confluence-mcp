@@ -4,7 +4,7 @@ import type { Mock } from 'bun:test'; // Import Mock type
 
 // Define mockFetch globally and initialize, then reassign in beforeEach
 let mockFetch: Mock<typeof fetch> = mock(); // Initialize with a mock
-global.fetch = mockFetch;
+global.fetch = mockFetch as any;
 
 
 describe('ConfluenceApiService - Rate Limiting', () => {
@@ -19,7 +19,7 @@ describe('ConfluenceApiService - Rate Limiting', () => {
     mock.restore(); // Restore any spies/mocks
     // Create a NEW mock instance for fetch for each test
     mockFetch = mock<typeof fetch>(); // Assign new mock instance
-    global.fetch = mockFetch;
+    global.fetch = mockFetch as any;
     // Directly mock Bun.sleep to create a spy
     sleepSpy = mock<(ms: number | Date) => Promise<void>>(Bun.sleep).mockResolvedValue(undefined);
     Bun.sleep = sleepSpy; // Assign the mock

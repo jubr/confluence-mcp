@@ -58,7 +58,7 @@ describe('ConfluenceApiService - Attachments', () => {
           'Content-Type': 'application/json'
         })
       }));
-    });
+    }) as any;
 
     // Mock FormData
     global.FormData = mock(function() {
@@ -87,7 +87,7 @@ describe('ConfluenceApiService - Attachments', () => {
           status: 200,
           headers: new Headers({ 'Content-Type': 'application/json' })
         }));
-      });
+      }) as any;
 
       const pageId = 'page-123';
       const result = await apiService.getAttachments(pageId);
@@ -125,7 +125,7 @@ describe('ConfluenceApiService - Attachments', () => {
           status: 200,
           headers: new Headers({ 'Content-Type': 'application/json' })
         }));
-      });
+      }) as any;
 
       const pageId = 'page-no-attachments';
       const result = await apiService.getAttachments(pageId);
@@ -156,7 +156,7 @@ describe('ConfluenceApiService - Attachments', () => {
         }));
       });
 
-      global.fetch = postMock;
+      global.fetch = postMock as any;
 
       const pageId = 'page-123';
       const fileContent = Buffer.from('This is a test file content.');
@@ -207,7 +207,7 @@ describe('ConfluenceApiService - Attachments', () => {
         }));
       });
 
-      global.fetch = postMock;
+      global.fetch = postMock as any;
 
       const pageId = 'page-456';
       const fileContent = Buffer.from('Another test.');
