@@ -74,7 +74,6 @@ bun run dev
 bun test
 ```
 
-
 ## Available Tools
 
 The Confluence MCP server exposes the following tools:
@@ -121,7 +120,7 @@ Create a new Confluence page. The `parentId` is optional and can be used to crea
   "spaceKey": "DEV",
   "title": "New Page Title",
   "content": "<p>Page content in Confluence Storage Format (XHTML)</p>",
-  "parentId": "123456" 
+  "parentId": "123456"
 }
 ```
 
@@ -158,7 +157,7 @@ Add a comment to a Confluence page. The `parentId` is optional for creating thre
 {
   "pageId": "123456",
   "content": "<p>This is a new comment.</p>",
-  "parentId": "789012" 
+  "parentId": "789012"
 }
 ```
 

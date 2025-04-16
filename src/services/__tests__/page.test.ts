@@ -10,15 +10,15 @@ const mockPageResponse = {
   id: 'page-123',
   title: 'Test Page',
   _expandable: {
-    space: '/rest/api/space/TEST'
+    space: '/rest/api/space/TEST',
   },
   version: {
-    number: 5
+    number: 5,
   },
   body: {
     storage: {
-      value: '<p>This is test content</p>'
-    }
+      value: '<p>This is test content</p>',
+    },
   },
   created: '2023-01-01T12:00:00.000Z',
   updated: '2023-01-02T12:00:00.000Z',
@@ -26,31 +26,27 @@ const mockPageResponse = {
     createdBy: {
       accountId: 'user-123',
       displayName: 'Test User',
-      email: 'user@example.com'
+      email: 'user@example.com',
     },
     lastUpdated: {
       by: {
         accountId: 'user-456',
         displayName: 'Another User',
-        email: 'another@example.com'
-      }
-    }
+        email: 'another@example.com',
+      },
+    },
   },
   _links: {
     webui: '/pages/123',
     editui: '/pages/123/edit',
-    tinyui: '/x/abc'
+    tinyui: '/x/abc',
   },
-  ancestors: [
-    { id: 'parent-123' }
-  ],
+  ancestors: [{ id: 'parent-123' }],
   metadata: {
     labels: {
-      results: [
-        { name: 'test-label', id: 'label-123' }
-      ]
-    }
-  }
+      results: [{ name: 'test-label', id: 'label-123' }],
+    },
+  },
 };
 
 // --- Test Suite ---
@@ -64,13 +60,15 @@ describe('ConfluenceApiService - Pages', () => {
   beforeEach(() => {
     // Reset the global fetch before each test
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({}), {
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
@@ -85,13 +83,15 @@ describe('ConfluenceApiService - Pages', () => {
     test('should fetch and clean a page', async () => {
       // Mock the fetch response for this specific test
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify(mockPageResponse), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify(mockPageResponse), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       }) as any;
 
       const pageId = 'page-123';
@@ -117,7 +117,9 @@ describe('ConfluenceApiService - Pages', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
       const fetchCall = (global.fetch as any).mock.calls[0];
       expect(fetchCall[0]).toContain(`${mockBaseUrl}/rest/api/content/${pageId}`);
-      expect(fetchCall[0]).toContain('expand=body.storage%2Cversion%2Cancestors%2Chistory%2Cmetadata.labels%2Cspace%2Cchildren.page');
+      expect(fetchCall[0]).toContain(
+        'expand=body.storage%2Cversion%2Cancestors%2Chistory%2Cmetadata.labels%2Cspace%2Cchildren.page'
+      );
     });
 
     // Note: Error handling tests for getPage are moved to error.test.ts
@@ -127,28 +129,35 @@ describe('ConfluenceApiService - Pages', () => {
     test('should create a page and return the cleaned result', async () => {
       // First mock the POST request to create the page
       const createMock = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({ id: 'new-page-123' }), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'new-page-123' }), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       });
 
       // Then mock the GET request to fetch the created page details
       const getMock = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({
-          ...mockPageResponse,
-          id: 'new-page-123',
-          title: 'New Test Page'
-        }), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }));
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...mockPageResponse,
+              id: 'new-page-123',
+              title: 'New Test Page',
+            }),
+            {
+              status: 200,
+              statusText: 'OK',
+              headers: new Headers({
+                'Content-Type': 'application/json',
+              }),
+            }
+          )
+        );
       });
 
       // Set up the fetch mock to handle both requests in sequence
@@ -195,28 +204,35 @@ describe('ConfluenceApiService - Pages', () => {
     test('should update a page and return the cleaned result', async () => {
       // First mock the GET request to fetch the current page
       const getMock = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify(mockPageResponse), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify(mockPageResponse), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       });
 
       // Then mock the PUT request to update the page
       const updateMock = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({
-          ...mockPageResponse,
-          title: 'Updated Test Page',
-          version: { number: 6 }
-        }), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }));
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...mockPageResponse,
+              title: 'Updated Test Page',
+              version: { number: 6 },
+            }),
+            {
+              status: 200,
+              statusText: 'OK',
+              headers: new Headers({
+                'Content-Type': 'application/json',
+              }),
+            }
+          )
+        );
       });
 
       // Mock response for the updated page after PUT
@@ -224,18 +240,19 @@ describe('ConfluenceApiService - Pages', () => {
         ...mockPageResponse,
         title: 'Updated Test Page',
         version: { number: 6 },
-        updated: '2023-01-03T12:00:00.000Z' // Simulate updated timestamp
+        updated: '2023-01-03T12:00:00.000Z', // Simulate updated timestamp
       };
       const getUpdatedMock = mock(() => {
-         return Promise.resolve(new Response(JSON.stringify(updatedPageResponse), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify(updatedPageResponse), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       });
-
 
       // Set up the fetch mock to handle the sequence: GET -> PUT -> GET
       let getCallCount = 0;

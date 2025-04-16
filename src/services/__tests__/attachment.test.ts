@@ -12,12 +12,14 @@ const mockAttachmentResponse = {
   title: 'test-file.txt',
   status: 'current',
   // pageId is not typically in the direct attachment response, it's inferred
-  metadata: { // Correct structure for mediaType
+  metadata: {
+    // Correct structure for mediaType
     mediaType: 'text/plain',
-    comment: 'Initial upload' // Comment might be here too in some API versions
+    comment: 'Initial upload', // Comment might be here too in some API versions
   },
-  extensions: { // fileSize is often here
-      fileSize: 1024
+  extensions: {
+    // fileSize is often here
+    fileSize: 1024,
   },
   version: {
     number: 1,
@@ -26,18 +28,18 @@ const mockAttachmentResponse = {
     by: {
       accountId: 'user-123',
       displayName: 'Test User',
-      email: 'user@example.com'
-    }
+      email: 'user@example.com',
+    },
   },
   _links: {
     webui: '/display/SPACE/PageName?preview=/download/attachments/123/test-file.txt',
-    download: '/download/attachments/123/test-file.txt'
-  }
+    download: '/download/attachments/123/test-file.txt',
+  },
 };
 
 const mockGetAttachmentsResponse = {
   results: [mockAttachmentResponse],
-  size: 1
+  size: 1,
 };
 
 // --- Test Suite ---
@@ -51,25 +53,28 @@ describe('ConfluenceApiService - Attachments', () => {
   beforeEach(() => {
     // Reset the global fetch before each test
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({}), {
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     // Mock FormData
-    global.FormData = mock(function() {
+    global.FormData = mock(function () {
       const data = new Map<string, any>();
       return {
-        append: (key: string, value: any) => { data.set(key, value); },
+        append: (key: string, value: any) => {
+          data.set(key, value);
+        },
         get: (key: string) => data.get(key),
-        _data: data // Expose data for inspection in tests
+        _data: data, // Expose data for inspection in tests
       };
     }) as any;
-
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
   });
@@ -83,10 +88,12 @@ describe('ConfluenceApiService - Attachments', () => {
   describe('getAttachments', () => {
     test('should fetch and clean attachments for a page', async () => {
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify(mockGetAttachmentsResponse), {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify(mockGetAttachmentsResponse), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
       }) as any;
 
       const pageId = 'page-123';
@@ -112,19 +119,22 @@ describe('ConfluenceApiService - Attachments', () => {
       expect(attachment.links.download).toBe(mockBaseUrl + mockAttachmentResponse._links.download);
       expect(attachment.links.webui).toBe(mockAttachmentResponse._links.webui);
 
-
       expect(global.fetch).toHaveBeenCalledTimes(1);
       const fetchCall = (global.fetch as any).mock.calls[0];
       // Correct the expected expand parameters to match the implementation (version,history,metadata)
-      expect(fetchCall[0]).toBe(`${mockBaseUrl}/rest/api/content/${pageId}/child/attachment?expand=version%2Chistory%2Cmetadata&limit=100`);
+      expect(fetchCall[0]).toBe(
+        `${mockBaseUrl}/rest/api/content/${pageId}/child/attachment?expand=version%2Chistory%2Cmetadata&limit=100`
+      );
     });
 
     test('should handle pages with no attachments', async () => {
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({ results: [], size: 0 }), {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [], size: 0 }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
       }) as any;
 
       const pageId = 'page-no-attachments';
@@ -144,16 +154,22 @@ describe('ConfluenceApiService - Attachments', () => {
         id: 'new-att-456',
         title: 'new-upload.pdf',
         comment: 'Upload comment',
-        version: { ...mockAttachmentResponse.version, number: 1, message: 'Upload comment' }
+        version: {
+          ...mockAttachmentResponse.version,
+          number: 1,
+          message: 'Upload comment',
+        },
       };
 
       // Mock POST for upload
       const postMock = mock(() => {
         // The actual API returns the attachment details directly on POST success
-        return Promise.resolve(new Response(JSON.stringify({ results: [mockCreatedAttachment] }), {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [mockCreatedAttachment] }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
       });
 
       global.fetch = postMock as any;
@@ -191,20 +207,22 @@ describe('ConfluenceApiService - Attachments', () => {
     });
 
     test('should add an attachment without comment', async () => {
-       const mockCreatedAttachment = {
+      const mockCreatedAttachment = {
         ...mockAttachmentResponse,
         id: 'new-att-789',
         title: 'no-comment.txt',
         comment: '', // Expect empty comment
-        version: { ...mockAttachmentResponse.version, number: 1, message: '' } // Expect empty message
+        version: { ...mockAttachmentResponse.version, number: 1, message: '' }, // Expect empty message
       };
 
       // Mock POST for upload
       const postMock = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({ results: [mockCreatedAttachment] }), {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [mockCreatedAttachment] }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
       });
 
       global.fetch = postMock as any;

@@ -40,22 +40,30 @@ describe('ConfluenceApiService - Error Handling', () => {
   test('should handle 404 errors specifically for content URLs', async () => {
     // Mock a 404 response for a content URL
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({ message: 'Not found' }), {
-        status: 404,
-        statusText: 'Not Found',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({ message: 'Not found' }), {
+          status: 404,
+          statusText: 'Not Found',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     const pageId = 'non-existent-page';
     // Test with getPage
-    await expect(apiService.getPage(pageId)).rejects.toThrow('Confluence API Error: Not found (Status: 404)');
+    await expect(apiService.getPage(pageId)).rejects.toThrow(
+      'Confluence API Error: Not found (Status: 404)'
+    );
     // Test with getComments
-    await expect(apiService.getComments(pageId)).rejects.toThrow('Confluence API Error: Not found (Status: 404)');
+    await expect(apiService.getComments(pageId)).rejects.toThrow(
+      'Confluence API Error: Not found (Status: 404)'
+    );
     // Test with updatePage (will fail on the initial GET)
-    await expect(apiService.updatePage(pageId, 't', 'c', 1)).rejects.toThrow('Confluence API Error: Not found (Status: 404)');
+    await expect(apiService.updatePage(pageId, 't', 'c', 1)).rejects.toThrow(
+      'Confluence API Error: Not found (Status: 404)'
+    );
     // Test with getAttachments (add this when implemented)
     // await expect(apiService.getAttachments(pageId)).rejects.toThrow('Confluence API Error: Not found (Status: 404)');
   });
@@ -64,93 +72,123 @@ describe('ConfluenceApiService - Error Handling', () => {
     // Mock a 404 response for a different type of URL (e.g., search)
     global.fetch = mock((url) => {
       if (url.toString().includes('/rest/api/content/search')) {
-        return Promise.resolve(new Response(JSON.stringify({ message: 'Search endpoint not found' }), {
-          status: 404,
-          statusText: 'Not Found'
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'Search endpoint not found' }), {
+            status: 404,
+            statusText: 'Not Found',
+          })
+        );
       }
       // Default mock for other calls if needed
       return Promise.resolve(new Response(JSON.stringify({})));
     }) as any;
 
-    await expect(apiService.searchPages('test')).rejects.toThrow('Confluence API Error: Search endpoint not found');
+    await expect(apiService.searchPages('test')).rejects.toThrow(
+      'Confluence API Error: Search endpoint not found'
+    );
   });
 
   test('should handle generic API errors (e.g., 500)', async () => {
     // Mock a 500 response
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({ message: 'Internal server error' }), {
-        status: 500,
-        statusText: 'Internal Server Error',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({ message: 'Internal server error' }), {
+          status: 500,
+          statusText: 'Internal Server Error',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     // Test with one method, assuming handleFetchError is used consistently
-    await expect(apiService.getPage('page-123')).rejects.toThrow('Confluence API Error: Internal server error');
+    await expect(apiService.getPage('page-123')).rejects.toThrow(
+      'Confluence API Error: Internal server error'
+    );
   });
 
   test('should handle non-JSON error responses', async () => {
-     global.fetch = mock(() => {
-       return Promise.resolve(new Response('<html><body>Gateway Timeout</body></html>', {
-         status: 504,
-         statusText: 'Gateway Timeout',
-         headers: new Headers({ 'Content-Type': 'text/html' })
-       }));
-     }) as any;
+    global.fetch = mock(() => {
+      return Promise.resolve(
+        new Response('<html><body>Gateway Timeout</body></html>', {
+          status: 504,
+          statusText: 'Gateway Timeout',
+          headers: new Headers({ 'Content-Type': 'text/html' }),
+        })
+      );
+    }) as any;
 
-     await expect(apiService.getPage('page-123')).rejects.toThrow('Confluence API Error: Gateway Timeout (Status: 504)');
-   });
+    await expect(apiService.getPage('page-123')).rejects.toThrow(
+      'Confluence API Error: Gateway Timeout (Status: 504)'
+    );
+  });
 
-   test('should handle errors during comment creation POST', async () => {
-      // Mock only the POST call to fail
-      global.fetch = mock((url, options) => {
-         if (options?.method === 'POST') {
-            return Promise.resolve(new Response(JSON.stringify({ message: 'Container not found' }), {
-              status: 400,
-              statusText: 'Bad Request'
-            }));
-         }
-         // Should not reach GET if POST fails
-         return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected GET call' }), { status: 500 }));
-      }) as any;
+  test('should handle errors during comment creation POST', async () => {
+    // Mock only the POST call to fail
+    global.fetch = mock((url, options) => {
+      if (options?.method === 'POST') {
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'Container not found' }), {
+            status: 400,
+            statusText: 'Bad Request',
+          })
+        );
+      }
+      // Should not reach GET if POST fails
+      return Promise.resolve(
+        new Response(JSON.stringify({ message: 'Unexpected GET call' }), {
+          status: 500,
+        })
+      );
+    }) as any;
 
-      const invalidPageId = 'invalid-page';
-      const content = '<p>Test</p>';
-      await expect(apiService.addComment(invalidPageId, content)).rejects.toThrow('Confluence API Error: Container not found');
+    const invalidPageId = 'invalid-page';
+    const content = '<p>Test</p>';
+    await expect(apiService.addComment(invalidPageId, content)).rejects.toThrow(
+      'Confluence API Error: Container not found'
+    );
+  });
+
+  test('should handle errors during subsequent GET after comment creation', async () => {
+    // Mock POST success, but GET failure
+    const postMock = mock(() => {
+      return Promise.resolve(
+        new Response(JSON.stringify({ id: 'temp-comment-id' }), {
+          status: 200,
+        })
+      );
+    });
+    const getMock = mock(() => {
+      return Promise.resolve(
+        new Response(JSON.stringify({ message: 'Unauthorized to view comment' }), {
+          status: 403,
+          statusText: 'Forbidden',
+        })
+      );
     });
 
-     test('should handle errors during subsequent GET after comment creation', async () => {
-       // Mock POST success, but GET failure
-       const postMock = mock(() => {
-         return Promise.resolve(new Response(JSON.stringify({ id: 'temp-comment-id' }), { status: 200 }));
-       });
-       const getMock = mock(() => {
-         return Promise.resolve(new Response(JSON.stringify({ message: 'Unauthorized to view comment' }), {
-           status: 403,
-           statusText: 'Forbidden'
-         }));
-       });
+    global.fetch = mock((url, options) => {
+      if (options?.method === 'POST') {
+        return postMock();
+      } else if (url.toString().includes('/rest/api/content/temp-comment-id')) {
+        return getMock();
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ message: 'Unexpected fetch call' }), {
+          status: 500,
+        })
+      );
+    }) as any;
 
-       global.fetch = mock((url, options) => {
-         if (options?.method === 'POST') {
-           return postMock();
-         } else if (url.toString().includes('/rest/api/content/temp-comment-id')) {
-           return getMock();
-         }
-         return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected fetch call' }), { status: 500 }));
-       }) as any;
+    const pageId = 'page-123';
+    const content = '<p>Test</p>';
+    await expect(apiService.addComment(pageId, content)).rejects.toThrow(
+      'Confluence API Error: Unauthorized'
+    );
+  });
 
-
-      const pageId = 'page-123';
-        const content = '<p>Test</p>';
-        await expect(apiService.addComment(pageId, content)).rejects.toThrow('Confluence API Error: Unauthorized');
-      });
-
-      // Add error tests for addAttachment here when implemented
-      // test('should handle errors during attachment upload POST', async () => { ... });
-      // test('should handle errors during subsequent GET after attachment upload', async () => { ... });
-
+  // Add error tests for addAttachment here when implemented
+  // test('should handle errors during attachment upload POST', async () => { ... });
+  // test('should handle errors during subsequent GET after attachment upload', async () => { ... });
 });

@@ -6,19 +6,20 @@ import { CleanConfluencePage } from '../../types/confluence.js'; // Assuming thi
 const originalFetch = global.fetch;
 
 // --- Mock Data ---
-const mockPageResponse = { // Needed for the structure within search results
+const mockPageResponse = {
+  // Needed for the structure within search results
   id: 'page-123',
   title: 'Test Page',
   _expandable: {
-    space: '/rest/api/space/TEST'
+    space: '/rest/api/space/TEST',
   },
   version: {
-    number: 5
+    number: 5,
   },
   body: {
     storage: {
-      value: '<p>This is test content</p>'
-    }
+      value: '<p>This is test content</p>',
+    },
   },
   created: '2023-01-01T12:00:00.000Z',
   updated: '2023-01-02T12:00:00.000Z',
@@ -26,36 +27,32 @@ const mockPageResponse = { // Needed for the structure within search results
     createdBy: {
       accountId: 'user-123',
       displayName: 'Test User',
-      email: 'user@example.com'
+      email: 'user@example.com',
     },
     lastUpdated: {
       by: {
         accountId: 'user-456',
         displayName: 'Another User',
-        email: 'another@example.com'
-      }
-    }
+        email: 'another@example.com',
+      },
+    },
   },
   _links: {
     webui: '/pages/123',
     editui: '/pages/123/edit',
-    tinyui: '/x/abc'
+    tinyui: '/x/abc',
   },
-  ancestors: [
-    { id: 'parent-123' }
-  ],
+  ancestors: [{ id: 'parent-123' }],
   metadata: {
     labels: {
-      results: [
-        { name: 'test-label', id: 'label-123' }
-      ]
-    }
-  }
+      results: [{ name: 'test-label', id: 'label-123' }],
+    },
+  },
 };
 
 const mockSearchResponse = {
   results: [mockPageResponse],
-  totalSize: 1
+  totalSize: 1,
 };
 
 // --- Test Suite ---
@@ -69,13 +66,15 @@ describe('ConfluenceApiService - Search', () => {
   beforeEach(() => {
     // Reset the global fetch before each test
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({}), {
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
@@ -90,13 +89,15 @@ describe('ConfluenceApiService - Search', () => {
     test('should search and clean pages', async () => {
       // Mock the fetch response
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify(mockSearchResponse), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify(mockSearchResponse), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       }) as any;
 
       const query = 'test';
@@ -121,19 +122,23 @@ describe('ConfluenceApiService - Search', () => {
       expect(fetchCall[0]).toContain(`${mockBaseUrl}/rest/api/content/search`);
       expect(fetchCall[0]).toContain(`cql=${query}`);
       // Verify expand parameters match implementation
-      expect(fetchCall[0]).toContain('expand=body.storage%2Cversion%2Cancestors%2Chistory%2Cmetadata.labels%2Cspace');
+      expect(fetchCall[0]).toContain(
+        'expand=body.storage%2Cversion%2Cancestors%2Chistory%2Cmetadata.labels%2Cspace'
+      );
     });
 
     test('should handle empty search results', async () => {
       // Mock an empty response
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({ results: [], totalSize: 0 }), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [], totalSize: 0 }), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       }) as any;
 
       const query = 'nonexistent';

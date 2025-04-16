@@ -9,7 +9,8 @@
     "start": "bun dist/index.js",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "prepare": "husky"
   },
   "keywords": [
     "mcp",
@@ -22,7 +23,10 @@
   "devDependencies": {
     "@types/bun": "^1.2.9",
     "@types/node": "^22.14.1",
-    "vite": "^6.2.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
+    "prettier": "^3.5.3",
+    "vite": "^6.3.0",
     "vite-plugin-dts": "^4.5.3",
     "vitest": "^3.1.1"
   },
@@ -31,5 +35,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.9.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": "prettier --write"
   }
 }

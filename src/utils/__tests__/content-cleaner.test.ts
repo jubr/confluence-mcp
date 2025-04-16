@@ -3,7 +3,7 @@ import {
   extractTextFromStorage,
   truncateContent,
   optimizeForAI,
-  storageFormatToMarkdown
+  storageFormatToMarkdown,
 } from '../content-cleaner.js';
 
 describe('extractTextFromStorage', () => {
@@ -117,7 +117,8 @@ describe('storageFormatToMarkdown', () => {
         <li>Another <strong>item</strong></li>
       </ul>
     `;
-    const expected = '# Title\n      This is a **paragraph** with *formatting*.\n\n        - Item with [link](https://example.com)\n\n        - Another **item**';
+    const expected =
+      '# Title\n      This is a **paragraph** with *formatting*.\n\n        - Item with [link](https://example.com)\n\n        - Another **item**';
     expect(storageFormatToMarkdown(html).trim()).toBe(expected);
   });
 });

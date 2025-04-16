@@ -4,7 +4,8 @@ import dts from 'vite-plugin-dts';
 import { resolve } from 'path';
 
 export default defineConfig({
-  test: { // Add Vitest configuration
+  test: {
+    // Add Vitest configuration
     globals: true, // Enable global API (vi, describe, it, etc.)
     environment: 'node', // Specify the test environment
   },
@@ -12,13 +13,13 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       formats: ['es'],
-      fileName: 'index'
+      fileName: 'index',
     },
     rollupOptions: {
-      external: ['@modelcontextprotocol/sdk', 'bun', 'process']
+      external: ['@modelcontextprotocol/sdk', 'bun', 'process'],
     },
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
   },
-  plugins: [dts()]
+  plugins: [dts()],
 });

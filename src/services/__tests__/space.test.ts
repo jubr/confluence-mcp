@@ -14,14 +14,14 @@ const mockSpacesResponse = {
       name: 'Test Space',
       description: {
         plain: {
-          value: 'This is a test space'
-        }
+          value: 'This is a test space',
+        },
       },
       type: 'GLOBAL',
-      status: 'CURRENT'
-    }
+      status: 'CURRENT',
+    },
   ],
-  size: 1
+  size: 1,
 };
 
 // --- Test Suite ---
@@ -35,13 +35,15 @@ describe('ConfluenceApiService - Spaces', () => {
   beforeEach(() => {
     // Reset the global fetch before each test
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({}), {
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
@@ -56,13 +58,15 @@ describe('ConfluenceApiService - Spaces', () => {
     test('should fetch and clean spaces', async () => {
       // Mock the fetch response
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify(mockSpacesResponse), {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'application/json'
+        return Promise.resolve(
+          new Response(JSON.stringify(mockSpacesResponse), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
           })
-        }));
+        );
       }) as any;
 
       const result = await apiService.getSpaces();
@@ -91,22 +95,24 @@ describe('ConfluenceApiService - Spaces', () => {
     });
 
     test('should handle empty spaces result', async () => {
-        // Mock an empty response
-        global.fetch = mock(() => {
-          return Promise.resolve(new Response(JSON.stringify({ results: [], size: 0 }), {
+      // Mock an empty response
+      global.fetch = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [], size: 0 }), {
             status: 200,
             statusText: 'OK',
             headers: new Headers({
-              'Content-Type': 'application/json'
-            })
-          }));
-        }) as any;
+              'Content-Type': 'application/json',
+            }),
+          })
+        );
+      }) as any;
 
-        const result = await apiService.getSpaces();
+      const result = await apiService.getSpaces();
 
-        expect(result.total).toBe(0);
-        expect(result.spaces).toHaveLength(0);
-      });
+      expect(result.total).toBe(0);
+      expect(result.spaces).toHaveLength(0);
+    });
 
     // Note: Error handling tests for getSpaces are moved to error.test.ts
   });

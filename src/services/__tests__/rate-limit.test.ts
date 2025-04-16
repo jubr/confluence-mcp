@@ -6,7 +6,6 @@ import type { Mock } from 'bun:test'; // Import Mock type
 let mockFetch: Mock<typeof fetch> = mock(); // Initialize with a mock
 global.fetch = mockFetch as any;
 
-
 describe('ConfluenceApiService - Rate Limiting', () => {
   const BASE_URL = 'https://test.atlassian.net/wiki';
   const EMAIL = 'test@example.com';
@@ -44,10 +43,10 @@ describe('ConfluenceApiService - Rate Limiting', () => {
     const apiService = new ConfluenceApiService(BASE_URL, EMAIL, TOKEN, delay);
 
     // Call any method that uses fetchJson
-    await apiService.getPage('123'); 
+    await apiService.getPage('123');
 
     // Check if fetch was called (ensuring the sleep path was reached)
-    expect(mockFetch).toHaveBeenCalledTimes(1); 
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     // Check if Bun.sleep was called before fetch
     expect(sleepSpy).toHaveBeenCalledTimes(1); // Use the spy
     expect(sleepSpy).toHaveBeenCalledWith(delay);
@@ -82,13 +81,12 @@ describe('ConfluenceApiService - Rate Limiting', () => {
     const pageId = '456';
 
     // Mock response for the attachment upload itself
-     mockFetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: mock().mockResolvedValue({ results: [{ id: 'att1' }] }), // Use bun:test mock
       status: 200,
     } as unknown as Response);
     // No second fetch mock needed anymore
-
 
     await apiService.addAttachment(pageId, fileContent, filename);
 
@@ -99,18 +97,20 @@ describe('ConfluenceApiService - Rate Limiting', () => {
     expect(sleepSpy).toHaveBeenCalledWith(delay);
   });
 
-   it('should NOT call Bun.sleep before fetch in addAttachment if requestDelay is 0', async () => {
+  it('should NOT call Bun.sleep before fetch in addAttachment if requestDelay is 0', async () => {
     const delay = 0;
     const apiService = new ConfluenceApiService(BASE_URL, EMAIL, TOKEN, delay);
     const fileContent = Buffer.from('test content');
     const filename = 'test.txt';
     const pageId = '456';
 
-     // Mock responses
-     mockFetch.mockResolvedValueOnce({
+    // Mock responses
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       // Ensure the mock response includes the 'results' array needed by the modified addAttachment
-      json: mock().mockResolvedValue({ results: [{ id: 'att1', title: filename }] }), // Use bun:test mock
+      json: mock().mockResolvedValue({
+        results: [{ id: 'att1', title: filename }],
+      }), // Use bun:test mock
       status: 200,
     } as unknown as Response);
     // No second fetch call mock needed anymore
@@ -121,5 +121,4 @@ describe('ConfluenceApiService - Rate Limiting', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(sleepSpy).not.toHaveBeenCalled(); // Use the spy
   });
-
 });

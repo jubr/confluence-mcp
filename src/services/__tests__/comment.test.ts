@@ -11,30 +11,32 @@ const mockCommentResponse = {
   status: 'current',
   title: 'Re: Test Page',
   // pageId is not directly in the raw comment response, it's passed to cleanComment
-  history: { // Changed from version to history to match cleanComment
+  history: {
+    // Changed from version to history to match cleanComment
     createdDate: '2023-01-03T10:00:00.000Z',
     createdBy: {
       accountId: 'user-789',
       displayName: 'Commenter User',
-      email: 'commenter@example.com'
-    }
+      email: 'commenter@example.com',
+    },
   },
-  version: { // Keep version for updatedBy if needed, though not in this mock
-     number: 1
+  version: {
+    // Keep version for updatedBy if needed, though not in this mock
+    number: 1,
   },
   body: {
     storage: {
-        value: '<p>This is a test comment</p>'
-      }
+      value: '<p>This is a test comment</p>',
     },
-    _links: {
-      webui: '/comment/456'
-    }
+  },
+  _links: {
+    webui: '/comment/456',
+  },
 };
 
 const mockGetCommentsResponse = {
   results: [mockCommentResponse],
-  size: 1
+  size: 1,
 };
 
 // --- Test Suite ---
@@ -48,13 +50,15 @@ describe('ConfluenceApiService - Comments', () => {
   beforeEach(() => {
     // Reset the global fetch before each test
     global.fetch = mock(() => {
-      return Promise.resolve(new Response(JSON.stringify({}), {
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({
-          'Content-Type': 'application/json'
+      return Promise.resolve(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
         })
-      }));
+      );
     }) as any;
 
     apiService = new ConfluenceApiService(mockBaseUrl, mockEmail, mockApiToken);
@@ -68,10 +72,12 @@ describe('ConfluenceApiService - Comments', () => {
   describe('getComments', () => {
     test('should fetch and clean comments for a page', async () => {
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify(mockGetCommentsResponse), {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify(mockGetCommentsResponse), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
       }) as any;
 
       const pageId = 'page-123';
@@ -91,15 +97,19 @@ describe('ConfluenceApiService - Comments', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
       const fetchCall = (global.fetch as any).mock.calls[0];
       // Correct the expected expand parameters to match the implementation
-      expect(fetchCall[0]).toBe(`${mockBaseUrl}/rest/api/content/${pageId}/child/comment?expand=body.storage%2Cversion%2Chistory%2Cancestors&limit=100`);
+      expect(fetchCall[0]).toBe(
+        `${mockBaseUrl}/rest/api/content/${pageId}/child/comment?expand=body.storage%2Cversion%2Chistory%2Cancestors&limit=100`
+      );
     });
 
     test('should handle pages with no comments', async () => {
       global.fetch = mock(() => {
-        return Promise.resolve(new Response(JSON.stringify({ results: [], size: 0 }), {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [], size: 0 }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
       }) as any;
 
       const pageId = 'page-no-comments';
@@ -116,99 +126,115 @@ describe('ConfluenceApiService - Comments', () => {
     test('should add a top-level comment and return the cleaned result', async () => {
       // Define the expected structure after creation and fetching
       const mockCreatedComment = {
-       ...mockCommentResponse, // Spread base structure
-       id: 'new-comment-789', // Override ID
-       body: { storage: { value: '<p>New comment content</p>' } }, // Override body
-       // Ensure history/version are consistent if needed, mockCommentResponse already has them
-     };
-     // Mock for POST request
-     const postMock = mock(() => {
-       // Return only the ID, as the actual API might do
-       return Promise.resolve(new Response(JSON.stringify({ id: 'new-comment-789' }), {
-         status: 200,
-         headers: new Headers({ 'Content-Type': 'application/json' })
-       }));
-     });
-     // Mock for subsequent GET request
-     const getMock = mock(() => {
-       return Promise.resolve(new Response(JSON.stringify(mockCreatedComment), {
-         status: 200,
-         headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
-     });
+        ...mockCommentResponse, // Spread base structure
+        id: 'new-comment-789', // Override ID
+        body: { storage: { value: '<p>New comment content</p>' } }, // Override body
+        // Ensure history/version are consistent if needed, mockCommentResponse already has them
+      };
+      // Mock for POST request
+      const postMock = mock(() => {
+        // Return only the ID, as the actual API might do
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'new-comment-789' }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      });
+      // Mock for subsequent GET request
+      const getMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify(mockCreatedComment), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      });
 
-     // Setup fetch mock to handle POST then GET
-     global.fetch = mock((url, options) => {
-       if (options?.method === 'POST') {
-         return postMock();
-       } else if (url.includes('/rest/api/content/new-comment-789')) {
-         return getMock();
-       }
-       // Fallback for unexpected calls
-       return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected fetch call' }), { status: 500 }));
-     }) as any;
+      // Setup fetch mock to handle POST then GET
+      global.fetch = mock((url, options) => {
+        if (options?.method === 'POST') {
+          return postMock();
+        } else if (url.includes('/rest/api/content/new-comment-789')) {
+          return getMock();
+        }
+        // Fallback for unexpected calls
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'Unexpected fetch call' }), {
+            status: 500,
+          })
+        );
+      }) as any;
 
-
-     const pageId = 'page-123';
+      const pageId = 'page-123';
       const content = '<p>New comment content</p>';
 
       const comment = await apiService.addComment(pageId, content);
 
       expect(comment).toBeObject();
       expect(comment.id).toBe('new-comment-789');
-     expect(comment.content).toBe('New comment content');
-     expect(comment.pageId).toBe(pageId); // cleanComment adds this
+      expect(comment.content).toBe('New comment content');
+      expect(comment.pageId).toBe(pageId); // cleanComment adds this
 
-     expect(global.fetch).toHaveBeenCalledTimes(2); // POST then GET
-     const postCall = (global.fetch as any).mock.calls[0];
-     expect(postCall[0]).toBe(`${mockBaseUrl}/rest/api/content`);
-     expect(postCall[1].method).toBe('POST');
+      expect(global.fetch).toHaveBeenCalledTimes(2); // POST then GET
+      const postCall = (global.fetch as any).mock.calls[0];
+      expect(postCall[0]).toBe(`${mockBaseUrl}/rest/api/content`);
+      expect(postCall[1].method).toBe('POST');
 
       const requestBody = JSON.parse(postCall[1].body); // Use postCall here
       expect(requestBody.type).toBe('comment');
       expect(requestBody.container.id).toBe(pageId);
       expect(requestBody.body.storage.value).toBe(content);
-     expect(requestBody.ancestors).toBeUndefined(); // No parentId provided
+      expect(requestBody.ancestors).toBeUndefined(); // No parentId provided
 
-     const getCall = (global.fetch as any).mock.calls[1];
-     expect(getCall[0]).toContain('/rest/api/content/new-comment-789');
-  });
+      const getCall = (global.fetch as any).mock.calls[1];
+      expect(getCall[0]).toContain('/rest/api/content/new-comment-789');
+    });
 
-  test('should add a threaded comment (reply) and return the cleaned result', async () => {
-     // Define the expected structure after creation and fetching
-     const mockCreatedReply = {
-       ...mockCommentResponse, // Spread base structure
-       id: 'reply-101', // Override ID
-       body: { storage: { value: '<p>This is a reply</p>' } }, // Override body
-       // Ensure history/version are consistent
-     };
+    test('should add a threaded comment (reply) and return the cleaned result', async () => {
+      // Define the expected structure after creation and fetching
+      const mockCreatedReply = {
+        ...mockCommentResponse, // Spread base structure
+        id: 'reply-101', // Override ID
+        body: { storage: { value: '<p>This is a reply</p>' } }, // Override body
+        // Ensure history/version are consistent
+      };
       // Mock for POST request
-     const postMock = mock(() => {
-       return Promise.resolve(new Response(JSON.stringify({ id: 'reply-101' }), { // Return only ID
-         status: 200,
-         headers: new Headers({ 'Content-Type': 'application/json' })
-       }));
-     });
-     // Mock for subsequent GET request
-     const getMock = mock(() => {
-       return Promise.resolve(new Response(JSON.stringify(mockCreatedReply), {
-         status: 200,
-         headers: new Headers({ 'Content-Type': 'application/json' })
-        }));
-     });
+      const postMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'reply-101' }), {
+            // Return only ID
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      });
+      // Mock for subsequent GET request
+      const getMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify(mockCreatedReply), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      });
 
       // Setup fetch mock to handle POST then GET
-     global.fetch = mock((url, options) => {
-       if (options?.method === 'POST') {
-         return postMock();
-       } else if (url.includes('/rest/api/content/reply-101')) {
-         return getMock();
-       }
-       // Fallback for unexpected calls
-       return Promise.resolve(new Response(JSON.stringify({ message: 'Unexpected fetch call' }), { status: 500 }));
-     }) as any;
+      global.fetch = mock((url, options) => {
+        if (options?.method === 'POST') {
+          return postMock();
+        } else if (url.includes('/rest/api/content/reply-101')) {
+          return getMock();
+        }
+        // Fallback for unexpected calls
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'Unexpected fetch call' }), {
+            status: 500,
+          })
+        );
+      }) as any;
 
-     const pageId = 'page-123';
+      const pageId = 'page-123';
       const content = '<p>This is a reply</p>';
       const parentId = 'comment-456'; // Replying to the mock comment
 
@@ -216,26 +242,26 @@ describe('ConfluenceApiService - Comments', () => {
 
       expect(comment).toBeObject();
       expect(comment.id).toBe('reply-101');
-     expect(comment.content).toBe('This is a reply');
-     expect(comment.pageId).toBe(pageId); // cleanComment adds this
-     // Note: The API response doesn't directly include parentId, so we verify the request body
+      expect(comment.content).toBe('This is a reply');
+      expect(comment.pageId).toBe(pageId); // cleanComment adds this
+      // Note: The API response doesn't directly include parentId, so we verify the request body
 
-     expect(global.fetch).toHaveBeenCalledTimes(2); // POST then GET
-     const postCall = (global.fetch as any).mock.calls[0];
-     expect(postCall[0]).toBe(`${mockBaseUrl}/rest/api/content`);
-     expect(postCall[1].method).toBe('POST');
+      expect(global.fetch).toHaveBeenCalledTimes(2); // POST then GET
+      const postCall = (global.fetch as any).mock.calls[0];
+      expect(postCall[0]).toBe(`${mockBaseUrl}/rest/api/content`);
+      expect(postCall[1].method).toBe('POST');
 
       const requestBody = JSON.parse(postCall[1].body); // Use postCall here
       expect(requestBody.type).toBe('comment');
       expect(requestBody.container.id).toBe(pageId);
       expect(requestBody.body.storage.value).toBe(content);
       expect(requestBody.ancestors).toBeArray();
-     expect(requestBody.ancestors[0].id).toBe(parentId); // Verify parentId is sent
+      expect(requestBody.ancestors[0].id).toBe(parentId); // Verify parentId is sent
 
-     const getCall = (global.fetch as any).mock.calls[1];
-     expect(getCall[0]).toContain('/rest/api/content/reply-101');
-  });
+      const getCall = (global.fetch as any).mock.calls[1];
+      expect(getCall[0]).toContain('/rest/api/content/reply-101');
+    });
 
-  // Note: Error handling tests for addComment are moved to error.test.ts
+    // Note: Error handling tests for addComment are moved to error.test.ts
   });
 });

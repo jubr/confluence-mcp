@@ -23,7 +23,9 @@ const CONFLUENCE_BASE_URL = process.env.CONFLUENCE_BASE_URL;
 const CONFLUENCE_USER_EMAIL = process.env.CONFLUENCE_USER_EMAIL;
 
 if (!CONFLUENCE_API_TOKEN || !CONFLUENCE_BASE_URL || !CONFLUENCE_USER_EMAIL) {
-  throw new Error('CONFLUENCE_API_TOKEN, CONFLUENCE_USER_EMAIL and CONFLUENCE_BASE_URL environment variables are required');
+  throw new Error(
+    'CONFLUENCE_API_TOKEN, CONFLUENCE_USER_EMAIL and CONFLUENCE_BASE_URL environment variables are required'
+  );
 }
 
 class ConfluenceServer {
@@ -50,7 +52,7 @@ class ConfluenceServer {
     );
 
     this.setupToolHandlers();
-    
+
     // Error handling
     this.server.onerror = (error) => console.error('[MCP Error]', error);
     process.on('SIGINT', async () => {
@@ -83,7 +85,8 @@ class ConfluenceServer {
         },
         {
           name: 'search_pages',
-          description: 'Search for Confluence pages using CQL (Confluence Query Language): query := expression [operator expression]* expression := field | function() | function | "phrase" | term operator := AND | OR | NOT | space field := date | after | before | during | lastmodified | modifiedafter | modifiedbefore | creator | from | to | content | title | body | subject | filename function() := now() | today() | yesterday() | this_week() | last_week() | this_month() | last_month() | this_year() | last_year() function := has | is | is | is | label | type | in value := string | quoted_string | date_format date_format := YYYY-MM-DD | YYYY-MM | YYYY quoted_string := "string with spaces" term := alphanumeric_string',
+          description:
+            'Search for Confluence pages using CQL (Confluence Query Language): query := expression [operator expression]* expression := field | function() | function | "phrase" | term operator := AND | OR | NOT | space field := date | after | before | during | lastmodified | modifiedafter | modifiedbefore | creator | from | to | content | title | body | subject | filename function() := now() | today() | yesterday() | this_week() | last_week() | this_month() | last_month() | this_year() | last_year() function := has | is | is | is | label | type | in value := string | quoted_string | date_format date_format := YYYY-MM-DD | YYYY-MM | YYYY quoted_string := "string with spaces" term := alphanumeric_string',
           inputSchema: {
             type: 'object',
             properties: {
@@ -265,39 +268,43 @@ class ConfluenceServer {
       try {
         switch (request.params.name) {
           case 'get_page': {
-            const { pageId, format = 'text' } = request.params.arguments as { 
-              pageId: string; 
+            const { pageId, format = 'text' } = request.params.arguments as {
+              pageId: string;
               format?: 'text' | 'markdown';
             };
 
             try {
               const page = await this.confluenceApi.getPage(pageId);
-              
+
               // Format the content based on the requested format
               let formattedContent = page.content;
               if (format === 'markdown' && page.content) {
                 formattedContent = storageFormatToMarkdown(page.content);
               }
-              
+
               // Optimize content for AI context window
               const optimizedContent = optimizeForAI(formattedContent);
-              
+
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      id: page.id,
-                      title: page.title,
-                      spaceKey: page.spaceKey,
-                      content: optimizedContent,
-                      url: page.links.webui,
-                      version: page.version,
-                      created: page.created,
-                      updated: page.updated,
-                      createdBy: page.createdBy.displayName,
-                      updatedBy: page.updatedBy.displayName,
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        id: page.id,
+                        title: page.title,
+                        spaceKey: page.spaceKey,
+                        content: optimizedContent,
+                        url: page.links.webui,
+                        version: page.version,
+                        created: page.created,
+                        updated: page.updated,
+                        createdBy: page.createdBy.displayName,
+                        updatedBy: page.updatedBy.displayName,
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -313,9 +320,13 @@ class ConfluenceServer {
               };
             }
           }
-          
+
           case 'search_pages': {
-            const { query, limit = 10, format = 'text' } = request.params.arguments as {
+            const {
+              query,
+              limit = 10,
+              format = 'text',
+            } = request.params.arguments as {
               query: string;
               limit?: number;
               format?: 'text' | 'markdown';
@@ -323,18 +334,18 @@ class ConfluenceServer {
 
             try {
               const result = await this.confluenceApi.searchPages(query);
-              
+
               // Limit the number of results and format content
-              const limitedPages = result.pages.slice(0, limit).map(page => {
+              const limitedPages = result.pages.slice(0, limit).map((page) => {
                 // Format content if needed
                 let formattedContent = page.content;
                 if (format === 'markdown' && page.content) {
                   formattedContent = storageFormatToMarkdown(page.content);
                 }
-                
+
                 // Optimize for AI
                 const optimizedContent = optimizeForAI(formattedContent);
-                
+
                 return {
                   id: page.id,
                   title: page.title,
@@ -346,16 +357,20 @@ class ConfluenceServer {
                   updatedBy: page.updatedBy.displayName,
                 };
               });
-              
+
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      total: result.total,
-                      returned: limitedPages.length,
-                      pages: limitedPages,
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        total: result.total,
+                        returned: limitedPages.length,
+                        pages: limitedPages,
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -371,7 +386,7 @@ class ConfluenceServer {
               };
             }
           }
-          
+
           case 'get_spaces': {
             const { limit = 50 } = request.params.arguments as {
               limit?: number;
@@ -379,19 +394,23 @@ class ConfluenceServer {
 
             try {
               const result = await this.confluenceApi.getSpaces();
-              
+
               // Limit the number of results
               const limitedSpaces = result.spaces.slice(0, limit);
-              
+
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      total: result.total,
-                      returned: limitedSpaces.length,
-                      spaces: limitedSpaces,
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        total: result.total,
+                        returned: limitedSpaces.length,
+                        spaces: limitedSpaces,
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -407,7 +426,7 @@ class ConfluenceServer {
               };
             }
           }
-          
+
           case 'create_page': {
             const { spaceKey, title, content, parentId } = request.params.arguments as {
               spaceKey: string;
@@ -418,22 +437,26 @@ class ConfluenceServer {
 
             try {
               const page = await this.confluenceApi.createPage(spaceKey, title, content, parentId);
-              
+
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      id: page.id,
-                      title: page.title,
-                      spaceKey: page.spaceKey,
-                      version: page.version,
-                      url: page.links.webui,
-                      parentId: page.parentId,
-                      updated: page.updated,
-                      updatedBy: page.updatedBy.displayName,
-                      message: 'Page created successfully',
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        id: page.id,
+                        title: page.title,
+                        spaceKey: page.spaceKey,
+                        version: page.version,
+                        url: page.links.webui,
+                        parentId: page.parentId,
+                        updated: page.updated,
+                        updatedBy: page.updatedBy.displayName,
+                        message: 'Page created successfully',
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -449,7 +472,7 @@ class ConfluenceServer {
               };
             }
           }
-          
+
           case 'update_page': {
             const { pageId, title, content, version } = request.params.arguments as {
               pageId: string;
@@ -460,21 +483,25 @@ class ConfluenceServer {
 
             try {
               const page = await this.confluenceApi.updatePage(pageId, title, content, version);
-              
+
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      id: page.id,
-                      title: page.title,
-                      spaceKey: page.spaceKey,
-                      version: page.version,
-                      url: page.links.webui,
-                      updated: page.updated,
-                      updatedBy: page.updatedBy.displayName,
-                      message: 'Page updated successfully',
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        id: page.id,
+                        title: page.title,
+                        spaceKey: page.spaceKey,
+                        version: page.version,
+                        url: page.links.webui,
+                        updated: page.updated,
+                        updatedBy: page.updatedBy.displayName,
+                        message: 'Page updated successfully',
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -492,7 +519,11 @@ class ConfluenceServer {
           }
 
           case 'get_comments': {
-            const { pageId, format = 'text', limit = 25 } = request.params.arguments as {
+            const {
+              pageId,
+              format = 'text',
+              limit = 25,
+            } = request.params.arguments as {
               pageId: string;
               format?: 'text' | 'markdown';
               limit?: number;
@@ -500,15 +531,15 @@ class ConfluenceServer {
 
             try {
               const result = await this.confluenceApi.getComments(pageId);
-              
+
               // Limit and format comments
-              const limitedComments = result.comments.slice(0, limit).map(comment => {
+              const limitedComments = result.comments.slice(0, limit).map((comment) => {
                 let formattedContent = comment.content;
                 if (format === 'markdown' && comment.content) {
                   formattedContent = storageFormatToMarkdown(comment.content);
                 }
                 const optimizedContent = optimizeForAI(formattedContent);
-                
+
                 return {
                   ...comment,
                   content: optimizedContent,
@@ -519,11 +550,15 @@ class ConfluenceServer {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      total: result.total,
-                      returned: limitedComments.length,
-                      comments: limitedComments,
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        total: result.total,
+                        returned: limitedComments.length,
+                        comments: limitedComments,
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -549,7 +584,7 @@ class ConfluenceServer {
 
             try {
               const comment = await this.confluenceApi.addComment(pageId, content, parentId);
-              
+
               // Optimize content for response
               const optimizedContent = optimizeForAI(comment.content);
 
@@ -557,11 +592,15 @@ class ConfluenceServer {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      ...comment,
-                      content: optimizedContent,
-                      message: 'Comment added successfully',
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        ...comment,
+                        content: optimizedContent,
+                        message: 'Comment added successfully',
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -586,7 +625,7 @@ class ConfluenceServer {
 
             try {
               const result = await this.confluenceApi.getAttachments(pageId);
-              
+
               // Limit attachments
               const limitedAttachments = result.attachments.slice(0, limit);
 
@@ -594,11 +633,15 @@ class ConfluenceServer {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      total: result.total,
-                      returned: limitedAttachments.length,
-                      attachments: limitedAttachments,
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        total: result.total,
+                        returned: limitedAttachments.length,
+                        attachments: limitedAttachments,
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -627,16 +670,25 @@ class ConfluenceServer {
               // Decode base64 content
               const fileContent = Buffer.from(fileContentBase64, 'base64');
 
-              const attachment = await this.confluenceApi.addAttachment(pageId, fileContent, filename, comment);
-              
+              const attachment = await this.confluenceApi.addAttachment(
+                pageId,
+                fileContent,
+                filename,
+                comment
+              );
+
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      ...attachment,
-                      message: 'Attachment added successfully',
-                    }, null, 2),
+                    text: JSON.stringify(
+                      {
+                        ...attachment,
+                        message: 'Attachment added successfully',
+                      },
+                      null,
+                      2
+                    ),
                   },
                 ],
               };
@@ -652,7 +704,7 @@ class ConfluenceServer {
               };
             }
           }
-          
+
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
         }
