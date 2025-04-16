@@ -4,6 +4,7 @@ export interface CleanConfluencePage {
   spaceKey: string;
   version: number;
   content: string;
+  contentMarkup?: string; // Original Confluence Storage Format (XHTML)
   created: string;
   updated: string;
   createdBy: {

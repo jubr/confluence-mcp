@@ -24,7 +24,7 @@ A Model Context Protocol (MCP) server for Confluence, enabling AI assistants to 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/confluence-mcp.git
+git clone https://github.com/cosmix/confluence-mcp.git
 cd confluence-mcp
 
 # Install dependencies
@@ -80,24 +80,26 @@ The Confluence MCP server exposes the following tools:
 
 ### get_page
 
-Retrieve a Confluence page by ID. Format refers to the return format of the content and can be `text` or `markdown`.
+Retrieve a Confluence page by ID. Format refers to the return format of the content and can be `text` or `markdown`. The `includeMarkup` parameter allows retrieving the original Confluence Storage Format (XHTML) markup, which is useful for updating pages while preserving formatting.
 
 ```json
 {
   "pageId": "123456",
-  "format": "text"
+  "format": "text",
+  "includeMarkup": true
 }
 ```
 
 ### search_pages
 
-Search for Confluence pages using CQL (Confluence Query Language). Format refers to the return format of the content and can be `text` or `markdown`.
+Search for Confluence pages using CQL (Confluence Query Language). Format refers to the return format of the content and can be `text` or `markdown`. The `includeMarkup` parameter allows retrieving the original Confluence Storage Format (XHTML) markup for each page.
 
 ```json
 {
   "query": "space = DEV and label = documentation",
   "limit": 10,
-  "format": "text"
+  "format": "text",
+  "includeMarkup": true
 }
 ```
 

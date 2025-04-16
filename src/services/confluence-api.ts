@@ -72,6 +72,7 @@ export class ConfluenceApiService {
       spaceKey: page._expandable?.space ? page._expandable.space.split('/').pop() : '',
       version: page.version?.number || 1,
       content: cleanContent,
+      contentMarkup: body, // Preserve the original markup
       created: page.created,
       updated: page.updated,
       createdBy: {
