@@ -79,6 +79,11 @@ class ConfluenceServer {
                 enum: ['text', 'markdown'],
                 description: 'Format to return the content in (default: text)',
               },
+              includeMarkup: {
+                type: 'boolean',
+                description:
+                  'Whether to include the original Confluence Storage Format (XHTML) markup in the response (default: false). Useful when you want to update the page later in order to preserve formatting.',
+              },
             },
             required: ['pageId'],
           },
@@ -102,6 +107,11 @@ class ConfluenceServer {
                 type: 'string',
                 enum: ['text', 'markdown'],
                 description: 'Format to return the content in (default: text)',
+              },
+              includeMarkup: {
+                type: 'boolean',
+                description:
+                  'Whether to include the original Confluence Storage Format (XHTML) markup in the response (default: false)',
               },
             },
             required: ['query'],
@@ -162,7 +172,8 @@ class ConfluenceServer {
               },
               content: {
                 type: 'string',
-                description: 'New content in Confluence Storage Format (XHTML)',
+                description:
+                  'New content in Confluence Storage Format (XHTML). CRITICAL: Content MUST be valid XHTML. Providing plain text or Markdown will result in the markup being displayed literally, not rendered as rich text.',
               },
               version: {
                 type: 'number',
@@ -268,9 +279,14 @@ class ConfluenceServer {
       try {
         switch (request.params.name) {
           case 'get_page': {
-            const { pageId, format = 'text' } = request.params.arguments as {
+            const {
+              pageId,
+              format = 'text',
+              includeMarkup = false,
+            } = request.params.arguments as {
               pageId: string;
               format?: 'text' | 'markdown';
+              includeMarkup?: boolean;
             };
 
             try {
@@ -282,29 +298,33 @@ class ConfluenceServer {
                 formattedContent = storageFormatToMarkdown(page.content);
               }
 
-              // Optimize content for AI context window
-              const optimizedContent = optimizeForAI(formattedContent);
+              // Content is no longer optimized/truncated for single page gets
+              const finalContent = formattedContent;
+
+              // Prepare the response object
+              const responseObj: any = {
+                id: page.id,
+                title: page.title,
+                spaceKey: page.spaceKey,
+                content: finalContent, // Use the full formatted content
+                url: page.links.webui,
+                version: page.version,
+                created: page.created,
+                updated: page.updated,
+                createdBy: page.createdBy.displayName,
+                updatedBy: page.updatedBy.displayName,
+              };
+
+              // Include the original markup if requested
+              if (includeMarkup && page.contentMarkup) {
+                responseObj.contentMarkup = page.contentMarkup;
+              }
 
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify(
-                      {
-                        id: page.id,
-                        title: page.title,
-                        spaceKey: page.spaceKey,
-                        content: optimizedContent,
-                        url: page.links.webui,
-                        version: page.version,
-                        created: page.created,
-                        updated: page.updated,
-                        createdBy: page.createdBy.displayName,
-                        updatedBy: page.updatedBy.displayName,
-                      },
-                      null,
-                      2
-                    ),
+                    text: JSON.stringify(responseObj, null, 2),
                   },
                 ],
               };
@@ -326,10 +346,12 @@ class ConfluenceServer {
               query,
               limit = 10,
               format = 'text',
+              includeMarkup = false,
             } = request.params.arguments as {
               query: string;
               limit?: number;
               format?: 'text' | 'markdown';
+              includeMarkup?: boolean;
             };
 
             try {
@@ -346,7 +368,8 @@ class ConfluenceServer {
                 // Optimize for AI
                 const optimizedContent = optimizeForAI(formattedContent);
 
-                return {
+                // Prepare the page object
+                const pageObj: any = {
                   id: page.id,
                   title: page.title,
                   spaceKey: page.spaceKey,
@@ -356,6 +379,13 @@ class ConfluenceServer {
                   updated: page.updated,
                   updatedBy: page.updatedBy.displayName,
                 };
+
+                // Include the original markup if requested
+                if (includeMarkup && page.contentMarkup) {
+                  pageObj.contentMarkup = page.contentMarkup;
+                }
+
+                return pageObj;
               });
 
               return {
