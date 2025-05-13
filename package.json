@@ -21,7 +21,7 @@
   "author": "Dimosthenis Kaponis",
   "license": "MIT",
   "devDependencies": {
-    "@types/bun": "^1.2.12",
+    "@types/bun": "^1.2.13",
     "@types/node": "^22.15.17",
     "husky": "^9.1.7",
     "lint-staged": "^16.0.0",
