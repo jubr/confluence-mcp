@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "sanitize-html": "^2.15.0",
-    "@modelcontextprotocol/sdk": "^1.11.2"
+    "@modelcontextprotocol/sdk": "^1.11.4"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css,md}": "prettier --write"
