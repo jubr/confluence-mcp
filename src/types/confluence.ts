@@ -28,6 +28,16 @@ export interface CleanConfluencePage {
     name: string;
     id: string;
   }[];
+  directChildren?: DirectChildContent[];
+}
+
+export interface DirectChildContent {
+  id: string;
+  status: string;
+  title: string;
+  type: string;
+  spaceId: string;
+  childPosition: number;
 }
 
 export type EditorMode = 'v1' | 'v2' | 'auto';

@@ -474,4 +474,123 @@ describe('ConfluenceApiService - Pages', () => {
 
     // Note: Error handling tests for updatePage are moved to error.test.ts
   });
+
+  describe('fetchDirectChildren', () => {
+    test('should fetch direct children with cursor pagination', async () => {
+      const mockChildrenPage1 = {
+        results: [
+          {
+            id: 'child-1',
+            status: 'current',
+            title: 'Child Page 1',
+            type: 'page',
+            spaceId: 'TEST',
+            childPosition: 0,
+          },
+          {
+            id: 'child-2', 
+            status: 'current',
+            title: 'Child Page 2',
+            type: 'page',
+            spaceId: 'TEST',
+            childPosition: 1,
+          },
+        ],
+        _links: {
+          next: 'https://example.atlassian.net/wiki/api/v2/pages/page-123/direct-children?cursor=abc123&limit=50',
+        },
+      };
+
+      const mockChildrenPage2 = {
+        results: [
+          {
+            id: 'child-3',
+            status: 'current', 
+            title: 'Child Page 3',
+            type: 'page',
+            spaceId: 'TEST',
+            childPosition: 2,
+          },
+        ],
+        _links: {}, // No next link
+      };
+
+      let callCount = 0;
+      global.fetch = mock((url) => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve(
+            new Response(JSON.stringify(mockChildrenPage1), {
+              status: 200,
+              headers: new Headers({ 'Content-Type': 'application/json' }),
+            })
+          );
+        } else {
+          return Promise.resolve(
+            new Response(JSON.stringify(mockChildrenPage2), {
+              status: 200,
+              headers: new Headers({ 'Content-Type': 'application/json' }),
+            })
+          );
+        }
+      }) as any;
+
+      const pageId = 'page-123';
+      const children = await apiService.fetchDirectChildren(pageId);
+
+      expect(children).toHaveLength(3);
+      expect(children[0].id).toBe('child-1');
+      expect(children[0].title).toBe('Child Page 1');
+      expect(children[0].spaceId).toBe('TEST');
+      expect(children[1].id).toBe('child-2');
+      expect(children[2].id).toBe('child-3');
+
+      // Verify both API calls were made
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      
+      // Check first call
+      const firstCall = (global.fetch as any).mock.calls[0];
+      expect(firstCall[0]).toContain('/wiki/api/v2/pages/page-123/direct-children');
+      expect(firstCall[0]).toContain('limit=50');
+      expect(firstCall[0]).not.toContain('cursor='); // First call should not have cursor
+
+      // Check second call  
+      const secondCall = (global.fetch as any).mock.calls[1];
+      expect(secondCall[0]).toContain('cursor=abc123'); // Second call should have cursor
+    });
+
+    test('should handle direct children fetch with no results', async () => {
+      global.fetch = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [], _links: {} }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      }) as any;
+
+      const pageId = 'page-no-children';
+      const children = await apiService.fetchDirectChildren(pageId);
+
+      expect(children).toHaveLength(0);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle direct children fetch errors gracefully', async () => {
+      global.fetch = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'Not found' }), {
+            status: 404,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      }) as any;
+
+      const pageId = 'invalid-page';
+      const children = await apiService.fetchDirectChildren(pageId);
+
+      expect(children).toHaveLength(0); // Should return empty array on error
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+  });
 });

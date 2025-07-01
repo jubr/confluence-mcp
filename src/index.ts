@@ -9,7 +9,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { ConfluenceApiService } from './services/confluence-api.js';
 import { optimizeForAI, storageFormatToMarkdown } from './utils/content-cleaner.js';
-import { EditorMode } from './types/confluence.js';
+import { EditorMode, DirectChildContent } from './types/confluence.js';
 
 declare module 'bun' {
   interface Env {
@@ -84,6 +84,11 @@ class ConfluenceServer {
                 type: 'boolean',
                 description:
                   'Whether to include the original Confluence Storage Format (XHTML) markup in the response (default: false). Useful when you want to update the page later in order to preserve formatting.',
+              },
+              includeDirectChildren: {
+                type: 'boolean',
+                description: 'Whether to include direct children in the response (default: false)',
+                default: false,
               },
             },
             required: ['pageId'],
@@ -293,10 +298,12 @@ class ConfluenceServer {
               pageId,
               format = 'text',
               includeMarkup = false,
+              includeDirectChildren = false,
             } = request.params.arguments as {
               pageId: string;
               format?: 'text' | 'markdown';
               includeMarkup?: boolean;
+              includeDirectChildren?: boolean;
             };
 
             try {
@@ -324,6 +331,18 @@ class ConfluenceServer {
                 createdBy: page.createdBy.displayName,
                 updatedBy: page.updatedBy.displayName,
               };
+
+              // Fetch direct children separately if requested
+              if (includeDirectChildren) {
+                try {
+                  const directChildren = await this.confluenceApi.fetchDirectChildren(pageId);
+                  // Include direct children in the response object
+                  responseObj.directChildren = directChildren;
+                } catch (error) {
+                  console.warn(`Failed to fetch direct children for page ${pageId}:`, error);
+                  responseObj.directChildren = [];
+                }
+              }
 
               // Include the original markup if requested
               if (includeMarkup && page.contentMarkup) {

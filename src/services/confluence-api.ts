@@ -6,6 +6,7 @@ import {
   ConfluenceAttachment,
   GetAttachmentsResponse,
   EditorMode,
+  DirectChildContent,
 } from '../types/confluence.js';
 
 export class ConfluenceApiService {
@@ -172,6 +173,45 @@ export class ConfluenceApiService {
     }
 
     return response.json();
+  }
+
+  /**
+   * Fetches direct children for a page using the REST API v2 with pagination
+   *
+   * @param pageId - The ID of the page to get direct children for
+   * @returns Array of all direct children
+   */
+  async fetchDirectChildren(pageId: string): Promise<DirectChildContent[]> {
+    const allChildren: DirectChildContent[] = [];
+    let cursor: string | undefined;
+    const limit = 50;
+
+    do {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+      });
+
+      if (cursor) {
+        params.append('cursor', cursor);
+      }
+
+      try {
+        const response = await this.fetchJson<any>(`/api/v2/pages/${pageId}/direct-children?${params}`);
+        
+        if (response.results) {
+          allChildren.push(...response.results);
+        }
+
+        // Get the next cursor from the _links object
+        cursor = response._links?.next ? new URL(response._links.next).searchParams.get('cursor') || undefined : undefined;
+      } catch (error) {
+        // If there's an error fetching children, log it and break the loop
+        console.warn(`Failed to fetch direct children for page ${pageId}:`, error);
+        break;
+      }
+    } while (cursor);
+
+    return allChildren;
   }
 
   /**
