@@ -14,6 +14,12 @@ A Model Context Protocol (MCP) server for Confluence, enabling AI assistants to 
 - Clean and transform Confluence content for AI consumption
 - Handle API communication, error handling, and data transformation
 - Basic rate limiting to prevent API abuse
+- **Page Management**: Create, read, update pages
+- **Search**: Search pages with CQL (Confluence Query Language)
+- **Comments**: Retrieve and add comments to pages
+- **Attachments**: Get and add attachments to pages
+- **Spaces**: List available spaces
+- **Editor Control**: Control which editor version is used for new pages
 
 ## Prerequisites
 
@@ -42,6 +48,7 @@ To use this MCP server, you need to set the following environment variables:
 CONFLUENCE_API_TOKEN=your_api_token
 CONFLUENCE_BASE_URL=your_confluence_instance_url  # e.g., https://your-domain.atlassian.net/wiki
 CONFLUENCE_USER_EMAIL=your_email
+CONFLUENCE_REQUEST_DELAY=100  # Optional: delay between requests in ms
 ```
 
 ### Claude Desktop / Cline Configuration
@@ -122,7 +129,8 @@ Create a new Confluence page. The `parentId` is optional and can be used to crea
   "spaceKey": "DEV",
   "title": "New Page Title",
   "content": "<p>Page content in Confluence Storage Format (XHTML)</p>",
-  "parentId": "123456"
+  "parentId": "123456",
+  "editorMode": "v2"
 }
 ```
 

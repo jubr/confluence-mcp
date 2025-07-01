@@ -5,6 +5,7 @@ import {
   GetCommentsResponse,
   ConfluenceAttachment,
   GetAttachmentsResponse,
+  EditorMode,
 } from '../types/confluence.js';
 
 export class ConfluenceApiService {
@@ -242,13 +243,15 @@ export class ConfluenceApiService {
    * @param title - The title of the new page
    * @param content - The content of the page in Confluence Storage Format (XHTML)
    * @param parentId - Optional ID of the parent page
+   * @param editorMode - Editor mode to use ('v1', 'v2', or 'auto'). Defaults to 'v2'
    * @returns A cleaned version of the created page
    */
   async createPage(
     spaceKey: string,
     title: string,
     content: string,
-    parentId?: string
+    parentId?: string,
+    editorMode: EditorMode = 'v2'
   ): Promise<CleanConfluencePage> {
     const payload: any = {
       type: 'page',
@@ -265,6 +268,18 @@ export class ConfluenceApiService {
     // Add parent relationship if parentId is provided
     if (parentId) {
       payload.ancestors = [{ id: parentId }];
+    }
+
+    // Add editor metadata if not 'auto'
+    if (editorMode !== 'auto') {
+      payload.metadata = {
+        properties: {
+          editor: {
+            key: 'editor',
+            value: editorMode,
+          },
+        },
+      };
     }
 
     const page = await this.fetchJson<any>('/rest/api/content', {

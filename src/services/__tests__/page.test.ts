@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { ConfluenceApiService } from '../confluence-api.js';
-import { CleanConfluencePage } from '../../types/confluence.js'; // Assuming this type is needed
+import { CleanConfluencePage, EditorMode } from '../../types/confluence.js'; // Assuming this type is needed
 
 // Mock global fetch
 const originalFetch = global.fetch;
@@ -126,6 +126,175 @@ describe('ConfluenceApiService - Pages', () => {
   });
 
   describe('createPage', () => {
+    test('should create a page with v2 editor by default', async () => {
+      // First mock the POST request to create the page
+      const createMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'new-page-123' }), {
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({
+              'Content-Type': 'application/json',
+            }),
+          })
+        );
+      });
+
+      // Then mock the GET request to fetch the created page details
+      const getMock = mock(() => {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...mockPageResponse,
+              id: 'new-page-123',
+              title: 'New Test Page',
+            }),
+            {
+              status: 200,
+              statusText: 'OK',
+              headers: new Headers({
+                'Content-Type': 'application/json',
+              }),
+            }
+          )
+        );
+      });
+
+      // Set up the fetch mock to handle both requests in sequence
+      global.fetch = mock((url) => {
+        if (url.includes('/rest/api/content') && !url.includes('new-page-123')) {
+          return createMock();
+        } else {
+          return getMock();
+        }
+      }) as any;
+
+      const spaceKey = 'TEST';
+      const title = 'New Test Page';
+      const content = '<p>New page content</p>';
+      const parentId = 'parent-123';
+
+      const page = await apiService.createPage(spaceKey, title, content, parentId);
+
+      // Verify the result
+      expect(page).toBeObject();
+      expect(page.id).toBe('new-page-123');
+      expect(page.title).toBe('New Test Page');
+
+      // Verify the fetch was called with the correct payload including v2 editor metadata
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      const createCall = (global.fetch as any).mock.calls[0];
+      expect(createCall[0]).toBe(`${mockBaseUrl}/rest/api/content`);
+      expect(createCall[1].method).toBe('POST');
+
+      const requestBody = JSON.parse(createCall[1].body);
+      expect(requestBody.type).toBe('page');
+      expect(requestBody.title).toBe(title);
+      expect(requestBody.space.key).toBe(spaceKey);
+      expect(requestBody.body.storage.value).toBe(content);
+      expect(requestBody.ancestors).toBeArray();
+      expect(requestBody.ancestors[0].id).toBe(parentId);
+      
+      // Verify v2 editor metadata is included by default
+      expect(requestBody.metadata).toBeObject();
+      expect(requestBody.metadata.properties.editor.key).toBe('editor');
+      expect(requestBody.metadata.properties.editor.value).toBe('v2');
+    });
+
+    test('should create a page with v1 editor when explicitly specified', async () => {
+      const createMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'new-page-v1' }), {
+            status: 200,
+          })
+        );
+      });
+
+      const getMock = mock(() => {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...mockPageResponse,
+              id: 'new-page-v1',
+              title: 'V1 Editor Page',
+            }),
+            {
+              status: 200,
+            }
+          )
+        );
+      });
+
+      global.fetch = mock((url) => {
+        if (url.includes('/rest/api/content') && !url.includes('new-page-v1')) {
+          return createMock();
+        } else {
+          return getMock();
+        }
+      }) as any;
+
+      const spaceKey = 'TEST';
+      const title = 'V1 Editor Page';
+      const content = '<p>V1 content</p>';
+      const editorMode: EditorMode = 'v1';
+
+      await apiService.createPage(spaceKey, title, content, undefined, editorMode);
+
+      const createCall = (global.fetch as any).mock.calls[0];
+      const requestBody = JSON.parse(createCall[1].body);
+      
+      // Verify v1 editor metadata is included
+      expect(requestBody.metadata).toBeObject();
+      expect(requestBody.metadata.properties.editor.key).toBe('editor');
+      expect(requestBody.metadata.properties.editor.value).toBe('v1');
+    });
+
+    test('should create a page without editor metadata when auto mode is used', async () => {
+      const createMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'new-page-auto' }), {
+            status: 200,
+          })
+        );
+      });
+
+      const getMock = mock(() => {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...mockPageResponse,
+              id: 'new-page-auto',
+              title: 'Auto Mode Page',
+            }),
+            {
+              status: 200,
+            }
+          )
+        );
+      });
+
+      global.fetch = mock((url) => {
+        if (url.includes('/rest/api/content') && !url.includes('new-page-auto')) {
+          return createMock();
+        } else {
+          return getMock();
+        }
+      }) as any;
+
+      const spaceKey = 'TEST';
+      const title = 'Auto Mode Page';
+      const content = '<p>Auto content</p>';
+      const editorMode: EditorMode = 'auto';
+
+      await apiService.createPage(spaceKey, title, content, undefined, editorMode);
+
+      const createCall = (global.fetch as any).mock.calls[0];
+      const requestBody = JSON.parse(createCall[1].body);
+      
+      // Verify no editor metadata is included for auto mode
+      expect(requestBody.metadata).toBeUndefined();
+    });
+
     test('should create a page and return the cleaned result', async () => {
       // First mock the POST request to create the page
       const createMock = mock(() => {

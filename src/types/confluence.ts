@@ -30,6 +30,8 @@ export interface CleanConfluencePage {
   }[];
 }
 
+export type EditorMode = 'v1' | 'v2' | 'auto';
+
 export interface SearchPagesResponse {
   total: number;
   pages: CleanConfluencePage[];

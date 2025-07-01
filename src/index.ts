@@ -9,6 +9,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { ConfluenceApiService } from './services/confluence-api.js';
 import { optimizeForAI, storageFormatToMarkdown } from './utils/content-cleaner.js';
+import { EditorMode } from './types/confluence.js';
 
 declare module 'bun' {
   interface Env {
@@ -151,6 +152,11 @@ class ConfluenceServer {
               parentId: {
                 type: 'string',
                 description: 'Optional ID of the parent page',
+              },
+              editorMode: {
+                type: 'string',
+                enum: ['v1', 'v2', 'auto'],
+                description: 'Editor mode to use: v1 (legacy), v2 (new), or auto (let Confluence decide). Defaults to v2',
               },
             },
             required: ['spaceKey', 'title', 'content'],
@@ -458,35 +464,22 @@ class ConfluenceServer {
           }
 
           case 'create_page': {
-            const { spaceKey, title, content, parentId } = request.params.arguments as {
+            const { spaceKey, title, content, parentId, editorMode } = request.params.arguments as {
               spaceKey: string;
               title: string;
               content: string;
               parentId?: string;
+              editorMode?: EditorMode;
             };
 
             try {
-              const page = await this.confluenceApi.createPage(spaceKey, title, content, parentId);
+              const page = await this.confluenceApi.createPage(spaceKey, title, content, parentId, editorMode);
 
               return {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify(
-                      {
-                        id: page.id,
-                        title: page.title,
-                        spaceKey: page.spaceKey,
-                        version: page.version,
-                        url: page.links.webui,
-                        parentId: page.parentId,
-                        updated: page.updated,
-                        updatedBy: page.updatedBy.displayName,
-                        message: 'Page created successfully',
-                      },
-                      null,
-                      2
-                    ),
+                    text: `Page created successfully!\n\nID: ${page.id}\nTitle: ${page.title}\nSpace: ${page.spaceKey}\nURL: ${page.links.webui}`,
                   },
                 ],
               };
@@ -495,7 +488,7 @@ class ConfluenceServer {
                 content: [
                   {
                     type: 'text',
-                    text: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+                    text: `Failed to create page: ${error instanceof Error ? error.message : 'Unknown error'}`,
                   },
                 ],
                 isError: true,
