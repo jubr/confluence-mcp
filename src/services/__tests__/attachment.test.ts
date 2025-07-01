@@ -250,6 +250,56 @@ describe('ConfluenceApiService - Attachments', () => {
       expect(formData._data.get('minorEdit')).toBeUndefined();
     });
 
+    test('should load file from disk when fileContentFromPath is provided', async () => {
+      const mockCreatedAttachment = {
+        ...mockAttachmentResponse,
+        id: 'file-from-disk-123',
+        title: 'disk-file.txt',
+        comment: 'Loaded from disk',
+        version: {
+          ...mockAttachmentResponse.version,
+          number: 1,
+          message: 'Loaded from disk',
+        },
+      };
+
+      // Mock POST for upload
+      const postMock = mock(() => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [mockCreatedAttachment] }), {
+            status: 200,
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+          })
+        );
+      });
+
+      global.fetch = postMock as any;
+
+      // Mock Bun.file to simulate file loading
+      const originalBunFile = Bun.file;
+      const mockFile = {
+        exists: () => Promise.resolve(true),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(12)), // Simulate file content
+      };
+      Bun.file = mock(() => mockFile) as any;
+
+      const pageId = 'page-789';
+      const filePath = '/path/to/file.txt';
+      const filename = 'disk-file.txt';
+      const comment = 'Loaded from disk';
+
+      const attachment = await apiService.addAttachment(pageId, Buffer.from(new ArrayBuffer(12)), filename, comment);
+
+      expect(attachment).toBeObject();
+      expect(attachment.id).toBe('file-from-disk-123');
+      expect(attachment.title).toBe(filename);
+      expect(attachment.comment).toBe(comment);
+      expect(attachment.pageId).toBe(pageId);
+
+      // Restore original Bun.file
+      Bun.file = originalBunFile;
+    });
+
     // Note: Error handling tests for addAttachment are in error.test.ts
   });
 });

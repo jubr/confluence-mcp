@@ -184,16 +184,44 @@ Retrieve attachments for a specific Confluence page.
 
 ### add_attachment
 
-Add an attachment to a Confluence page. The `fileContentBase64` should be the base64 encoded string of the file content.
+Add an attachment to a Confluence page.
 
-```json
+**Parameters:**
+- `pageId` (required): ID of the page to attach the file to
+- `filename` (required): Desired remote filename for the attachment
+- `fileContentBase64` (optional): Base64 encoded content of the file
+- `fileContentFromPath` (optional): Path to file on disk (relative or absolute)
+- `comment` (optional): Comment for the attachment version
+
+**Note:** Exactly one of `fileContentBase64` or `fileContentFromPath` must be provided.
+
+**Examples:**
+
+Using base64 content:
+```bash
+# First, encode your file to base64
+base64 /path/to/your/file.pdf > encoded.txt
+
+# Then use the MCP tool
 {
-  "pageId": "123456",
-  "filename": "document.pdf",
-  "fileContentBase64": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+P...",
-  "comment": "Uploaded new version of the document"
+  "pageId": "123456789",
+  "filename": "document.pdf", 
+  "fileContentBase64": "JVBERi0xLjQKMSAwIG9iago8PAovVHlwZSA...",
+  "comment": "Latest version of the document"
 }
 ```
+
+Using file path (simpler approach):
+```bash
+{
+  "pageId": "123456789",
+  "filename": "document.pdf",
+  "fileContentFromPath": "/path/to/your/file.pdf",
+  "comment": "Latest version of the document"
+}
+```
+
+The tool supports both relative and absolute paths. Relative paths are resolved from the current working directory.
 
 ## LICENCE
 

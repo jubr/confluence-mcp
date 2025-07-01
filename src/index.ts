@@ -264,18 +264,22 @@ class ConfluenceServer {
               },
               filename: {
                 type: 'string',
-                description: 'Desired filename for the attachment',
+                description: 'Desired remote filename for the attachment',
               },
               fileContentBase64: {
                 type: 'string',
-                description: 'Base64 encoded content of the file',
+                description: 'Base64 encoded content of the file. Mutually exclusive with fileContentFromPath',
+              },
+              fileContentFromPath: {
+                type: 'string',
+                description: 'Path to file on disk (relative or absolute). Mutually exclusive with fileContentBase64',
               },
               comment: {
                 type: 'string',
                 description: 'Optional comment for the attachment version',
               },
             },
-            required: ['pageId', 'filename', 'fileContentBase64'],
+            required: ['pageId', 'filename'],
           },
         },
       ],
@@ -682,16 +686,61 @@ class ConfluenceServer {
           }
 
           case 'add_attachment': {
-            const { pageId, filename, fileContentBase64, comment } = request.params.arguments as {
+            const { pageId, filename, fileContentBase64, fileContentFromPath, comment } = request.params.arguments as {
               pageId: string;
               filename: string;
-              fileContentBase64: string;
+              fileContentBase64?: string;
+              fileContentFromPath?: string;
               comment?: string;
             };
 
             try {
-              // Decode base64 content
-              const fileContent = Buffer.from(fileContentBase64, 'base64');
+              // Validate that exactly one of the two file content options is provided
+              if (fileContentBase64 && fileContentFromPath) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Error: fileContentBase64 and fileContentFromPath are mutually exclusive - provide only one',
+                    },
+                  ],
+                  isError: true,
+                };
+              }
+
+              if (!fileContentBase64 && !fileContentFromPath) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Error: Either fileContentBase64 or fileContentFromPath must be provided',
+                    },
+                  ],
+                  isError: true,
+                };
+              }
+
+              let fileContent: Buffer;
+              if (fileContentBase64) {
+                // Decode base64 content
+                fileContent = Buffer.from(fileContentBase64, 'base64');
+              } else {
+                // Load file from disk
+                const file = Bun.file(fileContentFromPath!);
+                if (!(await file.exists())) {
+                  return {
+                    content: [
+                      {
+                        type: 'text',
+                        text: `Error: File not found at path: ${fileContentFromPath}`,
+                      },
+                    ],
+                    isError: true,
+                  };
+                }
+                const arrayBuffer = await file.arrayBuffer();
+                fileContent = Buffer.from(arrayBuffer);
+              }
 
               const attachment = await this.confluenceApi.addAttachment(
                 pageId,

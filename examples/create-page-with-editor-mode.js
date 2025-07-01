@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Example script demonstrating EditorMode functionality
+ * Example script demonstrating EditorMode functionality and file attachment options
  * 
- * This script shows how to create Confluence pages with different editor modes:
- * - v2 (new editor) - default
- * - v1 (legacy editor) 
- * - auto (let Confluence decide)
+ * This script shows how to:
+ * - Create Confluence pages with different editor modes (v2, v1, auto)
+ * - Add attachments using base64 content or file paths
  */
 
 import { ConfluenceApiService } from '../src/services/confluence-api.js';
@@ -20,94 +19,127 @@ const spaceKey = process.env.CONFLUENCE_SPACE_KEY || 'TEST';
 if (!baseUrl || !email || !apiToken) {
   console.error('Missing required environment variables:');
   console.error('- CONFLUENCE_BASE_URL');
-  console.error('- CONFLUENCE_EMAIL');  
+  console.error('- CONFLUENCE_EMAIL');
   console.error('- CONFLUENCE_API_TOKEN');
-  console.error('- CONFLUENCE_SPACE_KEY (optional, defaults to TEST)');
+  console.error('- CONFLUENCE_SPACE_KEY (optional, defaults to "TEST")');
   process.exit(1);
 }
 
+const api = new ConfluenceApiService(baseUrl, email, apiToken);
+
 async function demonstrateEditorModes() {
-  const api = new ConfluenceApiService(baseUrl, email, apiToken);
-  
-  console.log('🚀 Demonstrating Confluence Editor Mode functionality\n');
-
   try {
-    // Example 1: Create page with new editor (default behavior)
-    console.log('📝 Creating page with new editor (v2 - default)...');
-    const newEditorPage = await api.createPage(
-      spaceKey,
-      'Page with New Editor',
-      '<p>This page was created with the <strong>new editor (v2)</strong>.</p><p>It supports modern editing features and provides a better user experience.</p>'
-    );
-    console.log(`✅ Created: ${newEditorPage.title} (ID: ${newEditorPage.id})`);
-    console.log(`   URL: ${newEditorPage.links.webui}\n`);
+    console.log('🚀 Creating pages with different editor modes...\n');
 
-    // Example 2: Create page with legacy editor  
-    console.log('📝 Creating page with legacy editor (v1)...');
-    const legacyEditorPage = await api.createPage(
+    // Create a page with v2 editor (default)
+    console.log('📄 Creating page with v2 editor (new Confluence editor)...');
+    const v2Page = await api.createPage(
       spaceKey,
-      'Page with Legacy Editor',
-      '<p>This page was created with the <strong>legacy editor (v1)</strong>.</p><p>This mode is useful for compatibility with older content or specific requirements.</p>',
+      'Demo Page - New Editor',
+      '<p>This page was created with the <strong>new Confluence editor (v2)</strong>.</p>',
+      undefined, // no parent
+      'v2'
+    );
+    console.log(`✅ Created: ${v2Page.links.webui}`);
+
+    // Create a page with v1 editor (legacy)
+    console.log('\n📄 Creating page with v1 editor (legacy editor)...');
+    const v1Page = await api.createPage(
+      spaceKey,
+      'Demo Page - Legacy Editor',
+      '<p>This page was created with the <strong>legacy Confluence editor (v1)</strong>.</p>',
       undefined,
       'v1'
     );
-    console.log(`✅ Created: ${legacyEditorPage.title} (ID: ${legacyEditorPage.id})`);
-    console.log(`   URL: ${legacyEditorPage.links.webui}\n`);
+    console.log(`✅ Created: ${v1Page.links.webui}`);
 
-    // Example 3: Create page with auto mode
-    console.log('📝 Creating page with auto editor mode...');
-    const autoModePage = await api.createPage(
+    // Create a page with auto mode (let Confluence decide)
+    console.log('\n📄 Creating page with auto editor mode...');
+    const autoPage = await api.createPage(
       spaceKey,
-      'Page with Auto Editor Mode',
-      '<p>This page was created with <strong>auto mode</strong>.</p><p>Confluence will analyze the content and choose the appropriate editor automatically.</p>',
+      'Demo Page - Auto Mode',
+      '<p>This page was created with <strong>auto editor mode</strong> (Confluence decides).</p>',
       undefined,
       'auto'
     );
-    console.log(`✅ Created: ${autoModePage.title} (ID: ${autoModePage.id})`);
-    console.log(`   URL: ${autoModePage.links.webui}\n`);
+    console.log(`✅ Created: ${autoPage.links.webui}`);
 
-    // Example 4: Create page with complex content that might trigger legacy editor
-    console.log('📝 Creating page with complex content (new editor forced)...');
-    const complexContentPage = await api.createPage(
-      spaceKey,
-      'Complex Content with New Editor',
-      `<p>This page contains complex content but forces the new editor:</p>
-      <table>
-        <tr>
-          <th>Feature</th>
-          <th>New Editor</th>
-          <th>Legacy Editor</th>
-        </tr>
-        <tr>
-          <td>Modern UI</td>
-          <td>✅</td>
-          <td>❌</td>
-        </tr>
-        <tr>
-          <td>Better Performance</td>
-          <td>✅</td>
-          <td>❌</td>
-        </tr>
-      </table>
-      <p>Even with tables and complex markup, the new editor is used when explicitly specified.</p>`,
-      undefined,
-      'v2'
-    );
-    console.log(`✅ Created: ${complexContentPage.title} (ID: ${complexContentPage.id})`);
-    console.log(`   URL: ${complexContentPage.links.webui}\n`);
+    console.log('\n🎯 All pages created successfully!');
+    console.log('Note: The editor mode affects which Confluence editor users will see when editing these pages.');
 
-    console.log('🎉 All examples completed successfully!');
-    console.log('\n📋 Summary:');
-    console.log(`- New Editor (v2): ${newEditorPage.title}`);
-    console.log(`- Legacy Editor (v1): ${legacyEditorPage.title}`);
-    console.log(`- Auto Mode: ${autoModePage.title}`);
-    console.log(`- Complex Content (v2): ${complexContentPage.title}`);
-
+    return { v2Page, v1Page, autoPage };
   } catch (error) {
     console.error('❌ Error:', error.message);
+    throw error;
+  }
+}
+
+async function demonstrateAttachments(pageId) {
+  try {
+    console.log('\n📎 Demonstrating attachment functionality...\n');
+
+    // Example 1: Create a simple text file and attach using Buffer (simulating base64)
+    console.log('📄 Creating attachment from buffer content...');
+    const textContent = 'This is a sample text file created programmatically.';
+    const textBuffer = Buffer.from(textContent, 'utf-8');
+    
+    const attachment1 = await api.addAttachment(
+      pageId,
+      textBuffer,
+      'sample-text.txt',
+      'Created from buffer content'
+    );
+    console.log(`✅ Attached: ${attachment1.title}`);
+
+    // Example 2: If you have a file on disk, you could use it like this:
+    // Note: This is how you would use the fileContentFromPath parameter via MCP
+    console.log('\n💡 File path attachment example:');
+    console.log('To attach a file from disk via MCP, you would use:');
+    console.log(JSON.stringify({
+      pageId: pageId,
+      filename: 'my-document.pdf',
+      fileContentFromPath: '/path/to/your/document.pdf',
+      comment: 'Uploaded from local file system'
+    }, null, 2));
+
+    console.log('\n💡 Base64 attachment example:');
+    console.log('To attach using base64 content via MCP, you would use:');
+    console.log(JSON.stringify({
+      pageId: pageId,
+      filename: 'my-document.pdf', 
+      fileContentBase64: 'JVBERi0xLjQK...(base64 content)',
+      comment: 'Uploaded as base64 encoded content'
+    }, null, 2));
+
+    console.log('\n🎯 Attachment examples completed!');
+  } catch (error) {
+    console.error('❌ Error with attachments:', error.message);
+    throw error;
+  }
+}
+
+async function main() {
+  try {
+    // Demonstrate editor modes
+    const pages = await demonstrateEditorModes();
+    
+    // Demonstrate attachments using the v2 page
+    await demonstrateAttachments(pages.v2Page.id);
+
+    console.log('\n🎉 All demonstrations completed successfully!');
+    console.log('\nKey takeaways:');
+    console.log('- v2 editor mode creates pages optimized for the new Confluence editor');
+    console.log('- v1 editor mode creates pages for the legacy editor'); 
+    console.log('- auto mode lets Confluence decide which editor to use');
+    console.log('- fileContentFromPath simplifies file attachments from disk');
+    console.log('- fileContentBase64 allows attaching in-memory content');
+  } catch (error) {
+    console.error('❌ Script failed:', error.message);
     process.exit(1);
   }
 }
 
-// Run the demonstration
-demonstrateEditorModes(); 
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+} 
